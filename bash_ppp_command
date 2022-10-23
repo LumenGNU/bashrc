@@ -1,0 +1,219 @@
+# declare -r LOGFILE=/run/user/1000/bppp.log
+# echo "" >> $LOGFILE
+# echo "ppp_command loadeed . . . . . . . . . . . . . . " >> $LOGFILE
+
+
+
+declare -i BPPP_FLAG=0
+declare  BPPP_ERR_LINE=""
+declare  BPPP_CUR_DIR=""
+declare -i BPPP_CCOUNTER=0
+
+# colors efects constants
+declare -r RED='\e[31m'
+declare -r LRED='\e[91m'
+declare -r BRED='\e[41m'
+declare -r BLRED='\e[101m'
+declare -r GRN='\e[32m'
+declare -r LGRN='\e[92m'
+declare -r BGRN='\e[42m'
+declare -r BLGRN='\e[102m'
+declare -r YLW='\e[33m'
+declare -r LYLW='\e[93m'
+declare -r BYLW='\e[43m'
+declare -r BLYLW='\e[103m'
+declare -r BLU='\e[34m'
+declare -r LBLU='\e[94m'
+declare -r BBLU='\e[44m'
+declare -r BLBLU='\e[104m'
+declare -r MGN='\e[35m'
+declare -r LMGN='\e[95m'
+declare -r BMGN='\e[45m'
+declare -r BLMGN='\e[105m'
+declare -r CYN='\e[36m'
+declare -r LCYN='\e[96m'
+declare -r BCYN='\e[46m'
+declare -r BLCYN='\e[106m'
+declare -r GRY='\e[37m'
+declare -r DGRY='\e[90m'
+declare -r BGRY='\e[47m'
+declare -r BDGRY='\e[100m'
+declare -r DEF='\e[0m'
+declare -r BLD='\e[1m'
+declare -r DIM='\e[2m'
+declare -r CUR='\e[3m'
+declare -r UND='\e[4m'
+declare -r INV='\e[7m'
+declare -r COF='\e[?25l'
+declare -r CON='\e[?25h'
+#-------------------------------------------------------------------------+
+#Color picker, usage: printf ${BLD}${CUR}${RED}${BBLU}"Some text"${DEF}   |
+#----------------------------+----------------------------------+---------+
+#    Text color              |     Background color             |         |
+#-------------+--------------+--------------+-------------------+         |
+#  Base       |Lighter\Darker|  Base        | Lighter\Darker    |         |
+#-------------+--------------+--------------+-------------------+         |
+# RED='\e[31m'; LRED='\e[91m'; BRED='\e[41m'; BLRED='\e[101m'  #| Red     |
+# GRN='\e[32m'; LGRN='\e[92m'; BGRN='\e[42m'; BLGRN='\e[102m'  #| Green   |
+# YLW='\e[33m'; LYLW='\e[93m'; BYLW='\e[43m'; BLYLW='\e[103m'  #| Yellow  |
+# BLU='\e[34m'; LBLU='\e[94m'; BBLU='\e[44m'; BLBLU='\e[104m'  #| Blue    |
+# MGN='\e[35m'; LMGN='\e[95m'; BMGN='\e[45m'; BLMGN='\e[105m'  #| Magenta |
+# CYN='\e[36m'; LCYN='\e[96m'; BCYN='\e[46m'; BLCYN='\e[106m'  #| Cyan    |
+# GRY='\e[37m'; DGRY='\e[90m'; BGRY='\e[47m'; BDGRY='\e[100m'  #| Gray    |
+#---------------------------------------------------------------+---------+
+# Effects                                                                 |
+#-------------------------------------------------------------------------+
+# DEF='\e[0m'   # Default color and effects                               |
+# BLD='\e[1m'   # Bold\brighter                                           |
+# DIM='\e[2m'   # Dim\darker                                              |
+# CUR='\e[3m'   # Italic font                                             |
+# UND='\e[4m'   # Underline                                               |
+# INV='\e[7m'   # Inverted                                                |
+# COF='\e[?25l' # Cursor Off                                              |
+# CON='\e[?25h' # Cursor On                                               |
+#-------------------------------------------------------------------------+
+# Text positioning, usage: XY 10 10 "Some text"                           |
+# XY   () { printf "\e[${2};${1}H${3}";   } #                             |
+#-------------------------------------------------------------------------+
+# Line, usage: line - 10 | line -= 20 | line "word1 word2 " 20            |
+# line () { printf %.s"${1}" $(seq ${2}); } #                             |
+#-------------------------------------------------------------------------+
+
+function ubppp_print_err_line
+{
+  local -i CC=0
+  local _err_line=''
+  local _err_line_len="${@}"; _err_line_len=${_err_line_len// /}; _err_line_len=${#_err_line_len}
+  for n in $@
+  do
+    if (( ${n} == 0 ))
+    then
+      _err_line="${_err_line}${BGRN} $n "
+    else
+      _err_line="${_err_line}${BRED} $n "
+    fi
+    (( CC=CC+2 ))
+  done
+  tput sgr0
+# echo "CC= $CC" >> $LOGFILE
+  printf '\n%b' "${DGRY}"
+  printf %.s"‾" $(seq $(( COLUMNS - _err_line_len - CC )) )
+  printf '%b%b%b\n\n' "${DEF}" "${_err_line}" "${DEF}"
+  tput sgr0
+}
+
+function ubppp_print_progect_dir
+{
+  tput sgr0 # TODO FIME
+  local -r GIT_TOPLEVEL=$(git rev-parse --show-toplevel 2>/dev/null)
+  if [[ -n "${GIT_TOPLEVEL}" ]]
+  then # внутри git репозитория
+    printf '\uf121  %s\n' "${GIT_TOPLEVEL}"
+    local -r _PWD=$(pwd -P)
+    BPPP_CUR_DIR="${_PWD#${GIT_TOPLEVEL}}"
+    BPPP_CUR_DIR=": .${BPPP_CUR_DIR}"
+  else # просто каталог
+    printf '\uf07b  %s\n' "${PWD}"
+    # BPPP_CUR_DIR=": ."
+    BPPP_CUR_DIR=''
+  fi
+  tput sgr0
+}
+
+
+function bppp_pre_command
+{
+  local -r ERR=${PIPESTATUS[@]}
+
+  (( ++BPPP_CCOUNTER ))  
+
+# echo "" >> $LOGFILE
+# echo "bppp_pre_command ****" >> $LOGFILE
+# echo "BASH_COMMAND = ${BASH_COMMAND}" >> $LOGFILE
+# echo "ERR      = ${ERR}" >> $LOGFILE
+# echo "BPPP_FLAG  = ${BPPP_FLAG}" >> $LOGFILE
+
+  [[ "${BASH_COMMAND}" == "trap 'bppp_pre_command' DEBUG" ]] && { BPPP_ERR_LINE="${ERR}"; return; }
+  [[ "${BASH_COMMAND}" == "bppp_post_command" ]] && { BPPP_FLAG=1; return; }
+
+  trap - DEBUG # TODO точно надо?
+  
+  if (( ${BPPP_FLAG} == 1 ))
+  then
+    BPPP_FLAG=0
+# echo "!устанавлюю BPPP_FLAG=0" >> $LOGFILE
+
+    tput sgr0
+    printf '%b' "${DGRY}"
+    printf %.s"‾" $(seq $COLUMNS)
+    printf '%b' "${DEF}"
+# echo "!сброс, рисую полоску" >> $LOGFILE
+    return
+  fi
+}
+
+
+
+function bppp_post_command
+{
+# echo "bppp_post_command *******************************************" >> $LOGFILE
+# echo "BPPP_CCOUNTER = ${BPPP_CCOUNTER}" >> $LOGFILE
+  
+  if (( BPPP_CCOUNTER > 2)) && [[ -n "${BPPP_ERR_LINE}" ]]
+  then
+    tput sgr0
+    ubppp_print_err_line ${BPPP_ERR_LINE}
+    BPPP_ERR_LINE=''
+  fi
+
+  ubppp_print_progect_dir
+
+  BPPP_CCOUNTER=0
+# echo "" >> $LOGFILE
+}
+
+PROMPT_COMMAND="trap 'bppp_pre_command' DEBUG; bppp_post_command"
+
+# set variable identifying the chroot you work in (used in the prompt below)
+if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
+  debian_chroot=$(cat /etc/debian_chroot)
+fi
+
+# set a fancy prompt (non-color, unless we know we "want" color)
+case "$TERM" in
+  xterm-color|*-256color) color_prompt=yes;;
+esac
+
+# uncomment for a colored prompt, if the terminal has the capability; turned
+# off by default to not distract the user: the focus in a terminal window
+# should be on the output of commands, not on the prompt
+#force_color_prompt=yes
+
+if [ -n "$force_color_prompt" ]; then
+  if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
+	# We have color support; assume it's compliant with Ecma-48
+	# (ISO/IEC-6429). (Lack of such support is extremely rare, and such
+	# a case would tend to support setf rather than setaf.)
+	color_prompt=yes
+  else
+	color_prompt=
+  fi
+fi
+
+DEB_CHROOT=${debian_chroot:+($debian_chroot)}
+
+if [ "$color_prompt" = yes ]; then
+  PS1='${DEB_CHROOT}\[\033[01;32m\]\u@\h\[\033[00m\]\[\033[01;34m\]${BPPP_CUR_DIR}\[\033[00m\]\$ \e[1m'
+else
+  PS1='${DEB_CHROOT}\u@\h${BPPP_CUR_DIR}\$ '
+fi
+unset color_prompt force_color_prompt
+
+# If this is an xterm set the title to user@host:dir
+case "$TERM" in
+xterm*|rxvt*)
+  PS1="\[\e]0;${DEB_CHROOT}\u@\h${BPPP_CUR_DIR}\a\]$PS1"
+  ;;
+*)
+  ;;
+esac
