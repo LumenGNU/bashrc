@@ -1,11 +1,13 @@
+#!/bin/bash
+
 # ~/.bashrc: executed by bash(1) for non-login shells.
 # see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
 # for examples
 
 # If not running interactively, don't do anything
 case $- in
-    *i*) ;;
-      *) return;;
+  *i*) ;;
+    *) return;;
 esac
 
 # ИСТОРИЯ
@@ -15,7 +17,7 @@ esac
 HISTCONTROL=ignoreboth:erasedups
 # HISTCONTROL=:ignorespace:ignoredups
 
-HISTIGNORE='ls *:rm *'
+HISTIGNORE='ls *:rm *:encfs *:'
 
 # append to the history file, don't overwrite it
 shopt -s histappend
@@ -44,14 +46,14 @@ shopt -s globstar
 
 # enable color support of ls and also add handy aliases
 # if [ -x /usr/bin/dircolors ]; then
-#     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
-#     alias ls='ls --color=auto'
-#     #alias dir='dir --color=auto'
-#     #alias vdir='vdir --color=auto'
+#   test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+#   alias ls='ls --color=auto'
+#   #alias dir='dir --color=auto'
+#   #alias vdir='vdir --color=auto'
 
-#     alias grep='grep --color=auto'
-#     alias fgrep='fgrep --color=auto'
-#     alias egrep='egrep --color=auto'
+#   alias grep='grep --color=auto'
+#   alias fgrep='fgrep --color=auto'
+#   alias egrep='egrep --color=auto'
 # fi
 
 # colored GCC warnings and errors
@@ -72,7 +74,8 @@ alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo
 # See /usr/share/doc/bash-doc/examples in the bash-doc package.
 
 if [ -f ~/.bash_aliases ]; then
-    . ~/.bash_aliases
+  # shellcheck source=bash_aliases
+  source ~/.bash_aliases
 fi
 
 # enable programmable completion features (you don't need to enable
@@ -80,22 +83,14 @@ fi
 # sources /etc/bash.bashrc).
 if ! shopt -oq posix; then
   if [ -f /usr/share/bash-completion/bash_completion ]; then
-    . /usr/share/bash-completion/bash_completion
+  source /usr/share/bash-completion/bash_completion
   elif [ -f /etc/bash_completion ]; then
-    . /etc/bash_completion
+  source /etc/bash_completion
   fi
 fi
 
-[ -r ~/.byobu/prompt ] && . ~/.byobu/prompt   #byobu-prompt#
+# shellcheck source=/home/lumen/.byobu/prompt
+[ -r ~/.byobu/prompt ] && source ~/.byobu/prompt   #byobu-prompt#
 
+# shellcheck source=bash_ppp_command
 source ~/.bash_ppp_command
-# PROMPT_COMMAND='history -a; set +o history; PPP_COMMAND; set -o history; '
-
-
-
-# По умолчанию, история команд включена всегда и все введенные команды можно использовать повторно не затрачивая времени на их набор. Но при желании функцию ведения истории можно временно отключить. В Bash история команд в текущей сессии отключается с помощью команды:
-
-# set +o history
-# Для включения ведения истории команд в текущей сессии выполните:
-
-# set -o history

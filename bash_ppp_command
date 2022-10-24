@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # declare -r LOGFILE=/run/user/1000/bppp.log
 # echo "" >> $LOGFILE
 # echo "ppp_command loadeed . . . . . . . . . . . . . . " >> $LOGFILE
@@ -10,6 +12,7 @@ declare  BPPP_CUR_DIR=""
 declare -i BPPP_CCOUNTER=0
 
 # colors efects constants
+
 declare -r RED='\e[31m'
 declare -r LRED='\e[91m'
 declare -r BRED='\e[41m'
@@ -83,10 +86,12 @@ function ubppp_print_err_line
 {
   local -i CC=0
   local _err_line=''
-  local _err_line_len="${@}"; _err_line_len=${_err_line_len// /}; _err_line_len=${#_err_line_len}
-  for n in $@
+  local _err_line_len="$*"; _err_line_len=${_err_line_len// /}; _err_line_len=${#_err_line_len}
+  
+  for n in "$@"
   do
-    if (( ${n} == 0 ))
+# echo "n= $n" >> $LOGFILE 
+    if (( n == 0 ))
     then
       _err_line="${_err_line}${BGRN} $n "
     else
@@ -110,7 +115,7 @@ function ubppp_print_progect_dir
   then # внутри git репозитория
     printf '\uf121  %s\n' "${GIT_TOPLEVEL}"
     local -r _PWD=$(pwd -P)
-    BPPP_CUR_DIR="${_PWD#${GIT_TOPLEVEL}}"
+    BPPP_CUR_DIR="${_PWD#"${GIT_TOPLEVEL}"}"
     BPPP_CUR_DIR=": .${BPPP_CUR_DIR}"
   else # просто каталог
     printf '\uf07b  %s\n' "${PWD}"
@@ -123,7 +128,7 @@ function ubppp_print_progect_dir
 
 function bppp_pre_command
 {
-  local -r ERR=${PIPESTATUS[@]}
+  local -r ERR=${PIPESTATUS[*]}
 
   (( ++BPPP_CCOUNTER ))  
 
@@ -138,7 +143,7 @@ function bppp_pre_command
 
   trap - DEBUG # TODO точно надо?
   
-  if (( ${BPPP_FLAG} == 1 ))
+  if (( BPPP_FLAG == 1 ))
   then
     BPPP_FLAG=0
 # echo "!устанавлюю BPPP_FLAG=0" >> $LOGFILE
@@ -162,6 +167,7 @@ function bppp_post_command
   if (( BPPP_CCOUNTER > 2)) && [[ -n "${BPPP_ERR_LINE}" ]]
   then
     tput sgr0
+    # shellcheck disable=SC2086
     ubppp_print_err_line ${BPPP_ERR_LINE}
     BPPP_ERR_LINE=''
   fi
