@@ -1,191 +1,225 @@
 #!/bin/bash
 
+#@see: https://en.wikipedia.org/wiki/ANSI_escape_code
+#@see: https://wiki.archlinux.org/title/Bash/Prompt_customization
+
+# fonts-powerline
+
 # declare -r LOGFILE=/run/user/1000/bppp.log
 # echo "" >> $LOGFILE
 # echo "ppp_command loadeed . . . . . . . . . . . . . . " >> $LOGFILE
 
-
-
-declare -i BPPP_FLAG=0
-declare  BPPP_ERR_LINE=''
-declare  BPPP_CUR_DIR=''
-declare  BPPP_CUR_BRH=''
+# declare -i BPPP_FLAG=0
+declare BPPP_ERR_LINE=''
+declare BPPP_CUR_SUBDIR=''
+declare BPPP_CUR_BRH=''
 declare -i BPPP_CCOUNTER=0
+declare -i BPPP_TIMESTAMP=0
 
-# colors efects constants
-# BUG: эти последовательность НЕЛЬЗЯ использовать в PS1, ломается строка
-# приглашения при листании истории команд
-declare -r RED='\E[31m'
-declare -r LRED='\E[91m'
-declare -r BRED='\E[41m'
-declare -r BLRED='\E[101m'
-declare -r GRN='\E[32m'
-declare -r LGRN='\E[92m'
-declare -r BGRN='\E[42m'
-declare -r BLGRN='\E[102m'
-declare -r YLW='\E[33m'
-declare -r LYLW='\E[93m'
-declare -r BYLW='\E[43m'
-declare -r BLYLW='\E[103m'
-declare -r BLU='\E[34m'
-declare -r LBLU='\E[94m'
-declare -r BBLU='\E[44m'
-declare -r BLBLU='\E[104m'
-declare -r MGN='\E[35m'
-declare -r LMGN='\E[95m'
-declare -r BMGN='\E[45m'
-declare -r BLMGN='\E[105m'
-declare -r CYN='\E[36m'
-declare -r LCYN='\E[96m'
-declare -r BCYN='\E[46m'
-declare -r BLCYN='\E[106m'
-declare -r GRY='\E[37m'
-declare -r DGRY='\E[90m'
-declare -r BGRY='\E[47m'
-declare -r BDGRY='\E[100m'
-declare -r DEF='\E[0m'
-declare -r BLD='\E[1m'
-declare -r DIM='\E[2m'
-declare -r CUR='\E[3m'
-declare -r UND='\E[4m'
-declare -r INV='\E[7m'
-declare -r COF='\E[?25l'
-declare -r CON='\E[?25h'
-#-------------------------------------------------------------------------+
-#Color picker, usage: printf ${BLD}${CUR}${RED}${BBLU}"Some text"${DEF}   |
-#----------------------------+----------------------------------+---------+
-#    Text color              |     Background color             |         |
-#-------------+--------------+--------------+-------------------+         |
-#  Base       |Lighter\Darker|  Base        | Lighter\Darker    |         |
-#-------------+--------------+--------------+-------------------+         |
-# RED='\E[31m'; LRED='\E[91m'; BRED='\E[41m'; BLRED='\E[101m'  #| Red     |
-# GRN='\E[32m'; LGRN='\E[92m'; BGRN='\E[42m'; BLGRN='\E[102m'  #| Green   |
-# YLW='\E[33m'; LYLW='\E[93m'; BYLW='\E[43m'; BLYLW='\E[103m'  #| Yellow  |
-# BLU='\E[34m'; LBLU='\E[94m'; BBLU='\E[44m'; BLBLU='\E[104m'  #| Blue    |
-# MGN='\E[35m'; LMGN='\E[95m'; BMGN='\E[45m'; BLMGN='\E[105m'  #| Magenta |
-# CYN='\E[36m'; LCYN='\E[96m'; BCYN='\E[46m'; BLCYN='\E[106m'  #| Cyan    |
-# GRY='\E[37m'; DGRY='\E[90m'; BGRY='\E[47m'; BDGRY='\E[100m'  #| Gray    |
-#---------------------------------------------------------------+---------+
-# Effects                                                                 |
-#-------------------------------------------------------------------------+
-# DEF='\E[0m'   # Default color and effects                               |
-# BLD='\E[1m'   # Bold\brighter                                           |
-# DIM='\E[2m'   # Dim\darker                                              |
-# CUR='\E[3m'   # Italic font                                             |
-# UND='\E[4m'   # Underline                                               |
-# INV='\E[7m'   # Inverted                                                |
-# COF='\E[?25l' # Cursor Off                                              |
-# CON='\E[?25h' # Cursor On                                               |
-#-------------------------------------------------------------------------+
-# Text positioning, usage: XY 10 10 "Some text"                           |
-# XY   () { printf "\e[${2};${1}H${3}";   } #                             |
-#-------------------------------------------------------------------------+
-# Line, usage: line - 10 | line -= 20 | line "word1 word2 " 20            |
-# line () { printf %.s"${1}" $(seq ${2}); } #                             |
-#-------------------------------------------------------------------------+
+declare BPPP_CB_BRH=''
+declare BPPP_CF_BRH=''
+declare BPPP_COLOR_USER=''
+declare BPPP_COLOR_HOST=''
+declare BPPP_CF_SUBDIR=''
 
-function ubppp_print_err_line
-{
-  local -i CC=0
+# функция рисует инф-строку после выполнения комманды. Типа такой:
+# ‾[1:23:57]‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾ 0  0  2‾
+#               отделяющая линия -^
+#  ^-- время выполнения команды (отображается если >5c)
+#                                        коды завершения комманд(ы)  -^
+## ubppp_print_nfo_line timestamp errCode1 errCode2 ... errCodeN
+function ubppp_print_nfo_line { # @mark: function ubppp_print_nfo_line
+  local -i _padding=1
   local _err_line=''
-  local _err_line_len="$*"; _err_line_len=${_err_line_len// /}; _err_line_len=${#_err_line_len}
-  
-  for n in "$@"
-  do
-# echo "n= $n" >> $LOGFILE 
-    if (( n == 0 ))
-    then
-      _err_line="${_err_line}${BGRN} $n "
+
+  local _timestamp="$1"
+  shift
+  if ((_timestamp > 5)); then
+    # timestamp to hh:mm:ss
+    printf -v _timestamp "[%02d:%02d:%02d]" "$((_timestamp / 60 / 60))" "$(((_timestamp / 60) % 60))" "$((_timestamp % 60))"
+    ((_padding = _padding + ${#_timestamp}))
+  else
+    _timestamp=''
+  fi #< первый параметр обработан сохранен в _timestamp, и отброшен (shift)
+
+  local _err_line_len="$*"
+  _err_line_len=${_err_line_len// /}
+  _err_line_len=${#_err_line_len} #< длинна всех символов всех параметров исключая пробелы
+
+  for n in "$@"; do #< перебор всех параметров (коды завершения)
+    # и составление одной раскрашеной строки
+    if ((n == 0)); then
+      _err_line="${_err_line}\e[0;38;5;193;48;5;34m $n " #< нулевой код (fg св-зеленый, bg зеленый)
     else
-      _err_line="${_err_line}${BRED} $n "
+      _err_line="${_err_line}\e[0;38;5;225;48;5;196m $n " #< не нулевой код (fg св-красный, bg красный)
     fi
-    (( CC=CC+2 ))
+    ((_padding = _padding + 2))
   done
-  tput sgr0
-# echo "CC= $CC" >> $LOGFILE
-  printf '\n%b' "${DGRY}"
-  printf %.s"‾" $(seq $(( COLUMNS - _err_line_len - CC )) )
-  printf '%b%b%b\n\n' "${DEF}" "${_err_line}" "${DEF}"
+
+  tput sgr0 #< рисование инф-строки
+  # stty -g >> $LOGFILE
+  printf '\n'
+  # if [[ "${TERM_PROGRAM}" = "vscode" ]]; then
+  #   #    серый цвет, фон по умолчанию -v
+  #   printf '%b\n‾%s' "\e[49;38;5;239m" "${_timestamp}"
+  #   printf '%.s‾' $(seq $((COLUMNS - 1 - _err_line_len - _padding)))
+  #   printf '%b\e[0m' "${_err_line}"
+  # else
+    # не работает в vscode
+    # # серый цвет----v + Overlined
+    printf '\e[38;5;239;53m %s' "${_timestamp}"
+    printf '%*s' $((COLUMNS - 1 - _err_line_len - _padding)) ''
+    printf '%b\e[0m' "${_err_line}"
+  # fi
+  printf '\n'
   tput sgr0
 }
 
-function ubppp_print_progect_dir
-{
-  tput sgr0 # TODO FIME
-  local -r GIT_TOPLEVEL=$(git rev-parse --show-toplevel 2>/dev/null)
-  if [[ -n "${GIT_TOPLEVEL}" ]]
-  then # внутри git репозитория
-    printf '\uf121  %s\n' "${GIT_TOPLEVEL}"
-    local -r _PWD=$(pwd -P)
-    BPPP_CUR_DIR="${_PWD#"${GIT_TOPLEVEL}"}"
-    BPPP_CUR_DIR=".${BPPP_CUR_DIR:-/}"
-    BPPP_CUR_BRH="$(git branch --show-current 2> /dev/null)"
-    BPPP_CUR_BRH="${BPPP_CUR_BRH:- --- }"
-  else # просто каталог
-    # если нет прав на запись в текущий каталог его путь будет написан красным
-    local _color="\033[1;4;31m"
-    [[ -w "${PWD}" ]] && _color="\033[1;4;34m" # иначе -- синим
-    printf '\uf07b :%b%s\n' "${_color}" "${PWD}"
-    BPPP_CUR_DIR=''
-    BPPP_CUR_BRH=''
+function ubppp_print_progect_dir { # @mark function ubppp_print_progect_dir
+  tput sgr0                        # @fixme: TODO FIME: точно надо?
+  printf '\n'
+  # получить путь к корню репозитория
+  local BPPP_TOPLEVEL
+  BPPP_TOPLEVEL="$(git rev-parse --show-toplevel 2>/dev/null)"
+
+  [[ -z "${BPPP_TOPLEVEL}" ]] && local -r IS_GIT_FLAG='' || local -r IS_GIT_FLAG='yes'
+  # если BPPP_TOPLEVEL не пустая -- внутри git репозитория
+
+  # если это не репозитортй значит текущая папка -- просто текущая папка
+  local -r PWD="$(pwd -P)"
+  BPPP_TOPLEVEL=${BPPP_TOPLEVEL:-"${PWD}"}
+
+  # цвет для текущего текста каталог/репозиторий, зависит от того есть ли
+  # разрешение на запись в каталог/репозиторий
+  {
+    [[ -w "${BPPP_TOPLEVEL}" ]] && printf -v BPPP_CF_SUBDIR '\e[38;5;228m' #< есть
+  }                             || printf -v BPPP_CF_SUBDIR '\e[38;5;196m' #< нет
+
+  # if [[ "${TERM_PROGRAM}" = "vscode" ]]; then
+  #   # рисую маркеры каталог/репозиторий
+  #   #  маркеры в терминале vscode
+  #   #                         обычный каталог -v              репозиторий -v
+  #   [[ -z "${IS_GIT_FLAG}" ]] && printf '\e[7m D \e[0m ' || printf '\e[7m G \e[0m '
+  # else                                                       #
+    { [[ -z "${IS_GIT_FLAG}" ]] && local icon='\uf07b'; } || #< обычный каталог
+      local icon='\uf121'                                    #< git репозиторий
+    printf '\e[0;48;5;53m%b %b ' "${BPPP_CF_SUBDIR}" ${icon}
+    unset icon
+  # fi
+
+  local _COLUMNS=$((COLUMNS - 5))
+  # распечатать текущий каталог/репозиторий, обрезав начало если не помещается
+  # в одну строку
+  ((${#BPPP_TOPLEVEL} > COLUMNS)) && BPPP_TOPLEVEL="…${BPPP_TOPLEVEL: -$_COLUMNS:$_COLUMNS}"
+  printf ' %-*s\e[0m\n'  "${_COLUMNS}" "${BPPP_TOPLEVEL}" #&& tput sgr0
+
+  # цвет юзера
+  [[ "$EUID" -ne 0 ]] && printf -v BPPP_COLOR_USER "\e[0;93m" || printf -v BPPP_COLOR_USER "\e[0;91m"
+  # цвет хоста
+  if [ -n "${SSH_CLIENT}" ] || [ -n "${SSH_TTY}" ] || [ -n "${SSH_CONNECTION}" ]; then
+    printf -v BPPP_COLOR_HOST "\e[0;91m"
+  else
+    printf -v BPPP_COLOR_HOST "\e[0;93m"
   fi
-  tput sgr0
+
+  if [[ -n "${IS_GIT_FLAG}" ]]; then # git
+    # текущий подкаталог текущего проекта(репозитория).
+    BPPP_CUR_SUBDIR="${PWD#"${BPPP_TOPLEVEL}"}"
+
+    if ((${#BPPP_CUR_SUBDIR} > 25)); then
+      BPPP_CUR_SUBDIR="…${BPPP_CUR_SUBDIR: -25:25}"
+      BPPP_CUR_SUBDIR="./${BPPP_CUR_SUBDIR}"
+    else
+      BPPP_CUR_SUBDIR=".${BPPP_CUR_SUBDIR:-/}"
+    fi
+
+    BPPP_CUR_BRH=" $(git branch --show-current 2>/dev/null) "
+    if [[ "${BPPP_CUR_BRH}" = " main " ]] || [[ "${BPPP_CUR_BRH}" = " master " ]]; then
+      printf -v BPPP_CB_BRH '\e[0;104m'
+    else
+      printf -v BPPP_CB_BRH '\e[0;101m'
+    fi
+    if [[ "$(git status --porcelain 2>/dev/null | wc -l)" = "0" ]]; then
+      printf -v BPPP_CF_BRH '\e[0;31m'
+    else
+      printf -v BPPP_CF_BRH '\e[0;30m'
+    fi
+
+  else # no git
+    BPPP_CUR_BRH=''
+    BPPP_CUR_SUBDIR=''
+  fi
+
+  tput sgr0 # TODO FIME:
 }
 
-
-function bppp_pre_command
-{
+function bppp_pre_command { # @mark: function bppp_pre_command
   local -r ERR=${PIPESTATUS[*]}
 
-  (( ++BPPP_CCOUNTER ))  
+  ((++BPPP_CCOUNTER))
 
-# echo "" >> $LOGFILE
-# echo "bppp_pre_command ****" >> $LOGFILE
-# echo "BASH_COMMAND = ${BASH_COMMAND}" >> $LOGFILE
-# echo "ERR      = ${ERR}" >> $LOGFILE
-# echo "BPPP_FLAG  = ${BPPP_FLAG}" >> $LOGFILE
+  # echo "" >> $LOGFILE
+  # echo "bppp_pre_command *******************"  #>> $LOGFILE
+  # echo ">    BASH_COMMAND  = ${BASH_COMMAND}"  #>> $LOGFILE
+  # echo ">    BPPP_CCOUNTER = ${BPPP_CCOUNTER}" #>> $LOGFILE
+  # echo "ERR      = ${ERR}" >> $LOGFILE
+  # echo "BPPP_FLAG  = ${BPPP_FLAG}" >> $LOGFILE
 
-  [[ "${BASH_COMMAND}" == "trap 'bppp_pre_command' DEBUG" ]] && { BPPP_ERR_LINE="${ERR}"; return; }
-  [[ "${BASH_COMMAND}" == "bppp_post_command" ]] && { BPPP_FLAG=1; return; }
+  [[ "${BASH_COMMAND}" == "trap 'bppp_pre_command' DEBUG" ]] && {
+    BPPP_TIMESTAMP=$(($(date +%s) - BPPP_TIMESTAMP)) #< время выполнения команды
+    BPPP_ERR_LINE="${ERR}"
+    # echo ">    BPPP_TIMESTAMP = ${BPPP_TIMESTAMP}" #>> $LOGFILE
+    return
+  }
+  [[ "${BASH_COMMAND}" == "bppp_post_command" ]] && {
+    # BPPP_FLAG=1
+    return
+  }
 
-  trap - DEBUG # TODO точно надо?
-  
-  if (( BPPP_FLAG == 1 ))
-  then
-    BPPP_FLAG=0
-# echo "!устанавлюю BPPP_FLAG=0" >> $LOGFILE
+  #trap - DEBUG # @fixme TODO точно надо?
 
+  if ((BPPP_CCOUNTER == 1)); then #if ((BPPP_FLAG == 1)); then
+    # BPPP_FLAG=0
+    # echo "!устанавлюю BPPP_FLAG=0" >> $LOGFILE
+
+    # tput sgr0; stty -g >> $LOGFILE
+    #    серый цвет, фон по умолчанию
+    # if [[ "${TERM_PROGRAM}" = "vscode" ]]; then
+    #   printf '%b' "\e[49;38;5;239m"
+    #   printf %.s"‾" $(seq $((COLUMNS-1)))
+    #   printf '\n%b' "\e[0m"
+    # else
+      printf '%b' '\e[49;38;5;239;53m'
+      printf '%*s' $((COLUMNS-1)) ''
+      printf '\n%b' '\e[0m'
+    # fi
     tput sgr0
-    printf '%b' "${DGRY}"
-    printf %.s"‾" $(seq $COLUMNS)
-    printf '%b' "${DEF}"
-# echo "!сброс, рисую полоску" >> $LOGFILE
+
+    # echo "!сброс, рисую полоску" >> $LOGFILE
+
+    BPPP_TIMESTAMP=$(date +%s) #< время начала выполнения команды
+    # echo ">    BPPP_TIMESTAMP = ${BPPP_TIMESTAMP}" #>> $LOGFILE
     return
   fi
 }
 
+function bppp_post_command { # @mark: function bppp_post_command
+  # echo "bppp_post_command *******************************************" #>> $LOGFILE
+  # echo ">    BPPP_CCOUNTER = ${BPPP_CCOUNTER}"                              #>> $LOGFILE
 
-
-function bppp_post_command
-{
-# echo "bppp_post_command *******************************************" >> $LOGFILE
-# echo "BPPP_CCOUNTER = ${BPPP_CCOUNTER}" >> $LOGFILE
-  
-  if (( BPPP_CCOUNTER > 2)) && [[ -n "${BPPP_ERR_LINE}" ]]
-  then
-    tput sgr0
+  if ((BPPP_CCOUNTER > 2)) && [[ -n "${BPPP_ERR_LINE}" ]]; then
     # shellcheck disable=SC2086
-    ubppp_print_err_line ${BPPP_ERR_LINE}
+    ubppp_print_nfo_line "${BPPP_TIMESTAMP}" ${BPPP_ERR_LINE}
     BPPP_ERR_LINE=''
+  else
+    printf '%b' "\033[s\033[3A"
   fi
 
   ubppp_print_progect_dir
 
   BPPP_CCOUNTER=0
-# echo "" >> $LOGFILE
+  # echo "" >> $LOGFILE
 }
-
-PROMPT_COMMAND="trap 'bppp_pre_command' DEBUG; bppp_post_command"
 
 # set variable identifying the chroot you work in (used in the prompt below)
 if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
@@ -194,7 +228,7 @@ fi
 
 # set a fancy prompt (non-color, unless we know we "want" color)
 case "$TERM" in
-  xterm-color|*-256color) color_prompt=yes;;
+xterm-color | *-256color) color_prompt=yes ;;
 esac
 
 # uncomment for a colored prompt, if the terminal has the capability; turned
@@ -204,121 +238,46 @@ esac
 
 if [ -n "$force_color_prompt" ]; then
   if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
-	# We have color support; assume it's compliant with Ecma-48
-	# (ISO/IEC-6429). (Lack of such support is extremely rare, and such
-	# a case would tend to support setf rather than setaf.)
-	color_prompt=yes
+    # We have color support; assume it's compliant with Ecma-48
+    # (ISO/IEC-6429). (Lack of such support is extremely rare, and such
+    # a case would tend to support setf rather than setaf.)
+    color_prompt=yes
   else
-	color_prompt=
+    color_prompt=
   fi
 fi
 
 DEB_CHROOT=${debian_chroot:+($debian_chroot)}
 
-# #  SETUP CONSTANTS
-# #  Bunch-o-predefined colors.  Makes reading code easier than escape sequences.
-# #  I don't remember where I found this.  o_O
-
-# # Reset
-# Color_Off="\[\033[0m\]"       # Text Reset
-
-# # Regular Colors
-#  Black="\[\033[0;30m\]"       # Black
-#    Red="\[\033[0;31m\]"       # Red
-#  Green="\[\033[0;32m\]"       # Green
-# Yellow="\[\033[0;33m\]"       # Yellow
-#   Blue="\[\033[0;34m\]"       # Blue
-# Purple="\[\033[0;35m\]"       # Purple
-#   Cyan="\[\033[0;36m\]"       # Cyan
-#  White="\[\033[0;37m\]"       # White
-
-# # Bold
-#   BBold="\[\033[1m\]"         # Bold only
-#  BBlack="\[\033[1;30m\]"      # Black
-#    BRed="\[\033[1;31m\]"      # Red
-#  BGreen="\[\033[1;32m\]"      # Green
-# BYellow="\[\033[1;33m\]"      # Yellow
-#   BBlue="\[\033[1;34m\]"      # Blue
-# BPurple="\[\033[1;35m\]"      # Purple
-#   BCyan="\[\033[1;36m\]"      # Cyan
-#  BWhite="\[\033[1;37m\]"      # White
-
-# # Underline
-# UBlack="\[\033[4;30m\]"       # Black
-# URed="\[\033[4;31m\]"         # Red
-# UGreen="\[\033[4;32m\]"       # Green
-# UYellow="\[\033[4;33m\]"      # Yellow
-# UBlue="\[\033[4;34m\]"        # Blue
-# UPurple="\[\033[4;35m\]"      # Purple
-# UCyan="\[\033[4;36m\]"        # Cyan
-# UWhite="\[\033[4;37m\]"       # White
-
-# # Background
-# On_Black="\[\033[40m\]"       # Black
-# On_Red="\[\033[41m\]"         # Red
-# On_Green="\[\033[42m\]"       # Green
-# On_Yellow="\[\033[43m\]"      # Yellow
-# On_Blue="\[\033[44m\]"        # Blue
-# On_Purple="\[\033[45m\]"      # Purple
-# On_Cyan="\[\033[46m\]"        # Cyan
-# On_White="\[\033[47m\]"       # White
-
-# # High Intensty
-# IBlack="\[\033[0;90m\]"       # Black
-# IRed="\[\033[0;91m\]"         # Red
-# IGreen="\[\033[0;92m\]"       # Green
-# IYellow="\[\033[0;93m\]"      # Yellow
-# IBlue="\[\033[0;94m\]"        # Blue
-# IPurple="\[\033[0;95m\]"      # Purple
-# ICyan="\[\033[0;96m\]"        # Cyan
-# IWhite="\[\033[0;97m\]"       # White
-
-# # Bold High Intensty
-# BIBlack="\[\033[1;90m\]"      # Black
-# BIRed="\[\033[1;91m\]"        # Red
-# BIGreen="\[\033[1;92m\]"      # Green
-# BIYellow="\[\033[1;93m\]"     # Yellow
-# BIBlue="\[\033[1;94m\]"       # Blue
-# BIPurple="\[\033[1;95m\]"     # Purple
-# BICyan="\[\033[1;96m\]"       # Cyan
-# BIWhite="\[\033[1;97m\]"      # White
-
-# # High Intensty backgrounds
-# On_IBlack="\[\033[0;100m\]"   # Black
-# On_IRed="\[\033[0;101m\]"     # Red
-# On_IGreen="\[\033[0;102m\]"   # Green
-# On_IYellow="\[\033[0;103m\]"  # Yellow
-# On_IBlue="\[\033[0;104m\]"    # Blue
-# On_IPurple="\[\033[10;95m\]"  # Purple
-# On_ICyan="\[\033[0;106m\]"    # Cyan
-# On_IWhite="\[\033[0;107m\]"   # White
-
-# # Various variables you might want for your PS1 prompt instead
-# Time12h="\T"
-# Time12a="\@"
-# PathShort="\w"
-# PathFull="\W"
-# NewLine="\n"
-# Jobs="\j"
-
+# see: https://wiki.archlinux.org/title/Bash/Prompt_customization
+# Note: Wrapping the tput output in \[ \] is recommended by the Bash man page.
+# This helps Bash ignore non-printable characters so that it correctly
+# calculates the size of the prompt. The wrap will not work with command
+# substitution, in which case the raw \1 \2 must be used.
 if [ "$color_prompt" = yes ]; then
-  PS1="${DEB_CHROOT}\
-\u@\h\
-\${BPPP_CUR_DIR:+:\[\033[4;34m\]\${BPPP_CUR_DIR}}\[\033[0m\]\
-\${BPPP_CUR_BRH:+ (\${BPPP_CUR_BRH})}\[\033[0m\] \
-\$\
- \[\033[1m\]"
- # TODO: полностью избавится от содержимого PS1, все рисовать в ubppp_print_progect_dir
+  # -TODO: полностью избавится от содержимого PS1, все рисовать в ubppp_print_progect_dir
+  # ! так не получится PS1=""; строка вввода начинает вести себя странно при
+  # перемещении по истории
+  #@mark: PROMPT_COMMAND=
+  PROMPT_COMMAND="trap 'bppp_pre_command' DEBUG; bppp_post_command"
+  #@mark: PS1=
+  PS1='${DEB_CHROOT}\
+\[${BPPP_COLOR_USER}\]\u\[\e[0m\]@\
+\[${BPPP_COLOR_HOST}\]\h\[\e[0m\] \
+\[${BPPP_CF_BRH}\]\[${BPPP_CB_BRH}\]${BPPP_CUR_BRH}\[\e[0m\] \
+\[${BPPP_CF_SUBDIR}\]${BPPP_CUR_SUBDIR}\[\e[0m\] \
+\[${BPPP_COLOR_USER}\]❱\[\e[0m\] \[\e[1m\]'
+
 else
-  PS1='${DEB_CHROOT}\u@\h${BPPP_CUR_DIR}\$ '
+  PS1='${DEB_CHROOT}\u@\h${BPPP_CUR_SUBDIR}\$ '
 fi
 unset color_prompt force_color_prompt
 
 # If this is an xterm set the title to user@host:dir
 case "$TERM" in
-xterm*|rxvt*)
-  PS1="\[\e]0;${DEB_CHROOT}\u@\h${BPPP_CUR_DIR}\a\]$PS1"
+xterm* | rxvt*)
+  PS1="\[\e]0;${DEB_CHROOT}\u@\h${BPPP_CUR_SUBDIR}\a\]$PS1"
   ;;
-*)
-  ;;
+*) ;;
+
 esac
