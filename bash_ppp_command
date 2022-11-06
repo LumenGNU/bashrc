@@ -9,17 +9,16 @@
 # echo "" >> $LOGFILE
 # echo "ppp_command loadeed . . . . . . . . . . . . . . " >> $LOGFILE
 
-# declare -i BPPP_FLAG=0
 declare BPPP_ERR_LINE=''
 declare BPPP_CUR_SUBDIR=''
 declare BPPP_CUR_BRH=''
+
 declare -i BPPP_CCOUNTER=0
+
 declare -i BPPP_TIMESTAMP=0
 
-declare BPPP_CB_BRH=''
-declare BPPP_CF_BRH=''
-declare BPPP_COLOR_USER=''
-declare BPPP_COLOR_HOST=''
+# declare BPPP_COLOR_USER=''
+# declare BPPP_COLOR_HOST=''
 declare BPPP_CF_SUBDIR=''
 
 # функция рисует инф-строку после выполнения комманды. Типа такой:
@@ -28,7 +27,7 @@ declare BPPP_CF_SUBDIR=''
 #  ^-- время выполнения команды (отображается если >5c)
 #                                        коды завершения комманд(ы)  -^
 ## ubppp_print_nfo_line timestamp errCode1 errCode2 ... errCodeN
-function ubppp_print_nfo_line { # @mark: function ubppp_print_nfo_line
+function ubppp_print_nfo_line { # @mark function ubppp_print_nfo_line
   local -i _padding=1
   local _err_line=''
 
@@ -58,31 +57,25 @@ function ubppp_print_nfo_line { # @mark: function ubppp_print_nfo_line
 
   tput sgr0 #< рисование инф-строки
   # stty -g >> $LOGFILE
+
   printf '\n'
-  # if [[ "${TERM_PROGRAM}" = "vscode" ]]; then
-  #   #    серый цвет, фон по умолчанию -v
-  #   printf '%b\n‾%s' "\e[49;38;5;239m" "${_timestamp}"
-  #   printf '%.s‾' $(seq $((COLUMNS - 1 - _err_line_len - _padding)))
-  #   printf '%b\e[0m' "${_err_line}"
-  # else
-    # не работает в vscode
-    # # серый цвет----v + Overlined
-    printf '\e[38;5;239;53m %s' "${_timestamp}"
-    printf '%*s' $((COLUMNS - 1 - _err_line_len - _padding)) ''
-    printf '%b\e[0m' "${_err_line}"
-  # fi
-  printf '\n'
+  # не работает в vscode
+  # # серый цвет----v + Overlined
+  printf '\e[38;5;239;53m %s' "${_timestamp}"
+  printf '%*s' $((COLUMNS - 1 - _err_line_len - _padding)) ''
+  printf '%b\e[0m' "${_err_line}"
+  printf '\n\n'
   tput sgr0
 }
 
 function ubppp_print_progect_dir { # @mark function ubppp_print_progect_dir
   tput sgr0                        # @fixme: TODO FIME: точно надо?
-  printf '\n'
+
   # получить путь к корню репозитория
   local BPPP_TOPLEVEL
   BPPP_TOPLEVEL="$(git rev-parse --show-toplevel 2>/dev/null)"
 
-  [[ -z "${BPPP_TOPLEVEL}" ]] && local -r IS_GIT_FLAG='' || local -r IS_GIT_FLAG='yes'
+  { [[ -z "${BPPP_TOPLEVEL}" ]] && local -r IS_GIT_FLAG=''; } || local -r IS_GIT_FLAG='yes'
   # если BPPP_TOPLEVEL не пустая -- внутри git репозитория
 
   # если это не репозитортй значит текущая папка -- просто текущая папка
@@ -92,35 +85,19 @@ function ubppp_print_progect_dir { # @mark function ubppp_print_progect_dir
   # цвет для текущего текста каталог/репозиторий, зависит от того есть ли
   # разрешение на запись в каталог/репозиторий
   {
-    [[ -w "${BPPP_TOPLEVEL}" ]] && printf -v BPPP_CF_SUBDIR '\e[38;5;228m' #< есть
-  }                             || printf -v BPPP_CF_SUBDIR '\e[38;5;196m' #< нет
+    [[ -w "${PWD}" ]] && printf -v BPPP_CF_SUBDIR '\e[38;5;228m' #< есть
+  } || printf -v BPPP_CF_SUBDIR '\e[38;5;196m'                   #< нет
 
-  # if [[ "${TERM_PROGRAM}" = "vscode" ]]; then
-  #   # рисую маркеры каталог/репозиторий
-  #   #  маркеры в терминале vscode
-  #   #                         обычный каталог -v              репозиторий -v
-  #   [[ -z "${IS_GIT_FLAG}" ]] && printf '\e[7m D \e[0m ' || printf '\e[7m G \e[0m '
-  # else                                                       #
-    { [[ -z "${IS_GIT_FLAG}" ]] && local icon='\uf07b'; } || #< обычный каталог
-      local icon='\uf121'                                    #< git репозиторий
-    printf '\e[0;48;5;53m%b %b ' "${BPPP_CF_SUBDIR}" ${icon}
-    unset icon
-  # fi
+  { [[ -z "${IS_GIT_FLAG}" ]] && local icon='\uf07b'; } || #< обычный каталог
+    local icon='\uf121'                                    #< git репозиторий
+  printf '\e[0;48;5;53m%b %b ' "${BPPP_CF_SUBDIR}" ${icon}
+  unset icon
 
   local _COLUMNS=$((COLUMNS - 5))
   # распечатать текущий каталог/репозиторий, обрезав начало если не помещается
   # в одну строку
   ((${#BPPP_TOPLEVEL} > COLUMNS)) && BPPP_TOPLEVEL="…${BPPP_TOPLEVEL: -$_COLUMNS:$_COLUMNS}"
-  printf ' %-*s\e[0m\n'  "${_COLUMNS}" "${BPPP_TOPLEVEL}" #&& tput sgr0
-
-  # цвет юзера
-  [[ "$EUID" -ne 0 ]] && printf -v BPPP_COLOR_USER "\e[0;93m" || printf -v BPPP_COLOR_USER "\e[0;91m"
-  # цвет хоста
-  if [ -n "${SSH_CLIENT}" ] || [ -n "${SSH_TTY}" ] || [ -n "${SSH_CONNECTION}" ]; then
-    printf -v BPPP_COLOR_HOST "\e[0;91m"
-  else
-    printf -v BPPP_COLOR_HOST "\e[0;93m"
-  fi
+  printf ' %-*s\e[0m\n' "${_COLUMNS}" "${BPPP_TOPLEVEL}" #&& tput sgr0
 
   if [[ -n "${IS_GIT_FLAG}" ]]; then # git
     # текущий подкаталог текущего проекта(репозитория).
@@ -133,19 +110,10 @@ function ubppp_print_progect_dir { # @mark function ubppp_print_progect_dir
       BPPP_CUR_SUBDIR=".${BPPP_CUR_SUBDIR:-/}"
     fi
 
-    BPPP_CUR_BRH=" $(git branch --show-current 2>/dev/null) "
-    if [[ "${BPPP_CUR_BRH}" = " main " ]] || [[ "${BPPP_CUR_BRH}" = " master " ]]; then
-      printf -v BPPP_CB_BRH '\e[0;104m'
-    else
-      printf -v BPPP_CB_BRH '\e[0;101m'
-    fi
-    if [[ "$(git status --porcelain 2>/dev/null | wc -l)" = "0" ]]; then
-      printf -v BPPP_CF_BRH '\e[0;31m'
-    else
-      printf -v BPPP_CF_BRH '\e[0;30m'
-    fi
-
-  else # no git
+    # текущая ветка репозитория
+    BPPP_CUR_BRH="$(git branch --show-current 2>/dev/null)"
+    BPPP_CUR_BRH="${BPPP_CUR_BRH:-"* * *"}" # @fixme: точно нужно?
+  else                                      # no git
     BPPP_CUR_BRH=''
     BPPP_CUR_SUBDIR=''
   fi
@@ -153,57 +121,99 @@ function ubppp_print_progect_dir { # @mark function ubppp_print_progect_dir
   tput sgr0 # TODO FIME:
 }
 
-function bppp_pre_command { # @mark: function bppp_pre_command
+# строит строку user@host
+# цвет красный если user == root, и если host --> ssh
+function ubppp_print_user_host { # @mark function ubppp_print_user_host
+  # @fixme: протестировать
+  # юзер
+  if (("$EUID" == 0)); then
+    printf "\1\e[49;38;5;196m\2" #< если root
+  else
+    printf "\1\e[49;38;5;228m\2" #< если нет
+  fi
+  printf '%s\1\e[0m\2@' "${USER}" #< разделитель
+  # хост
+  # @todo [ или [[
+  if [ -n "${SSH_CLIENT}" ] || [ -n "${SSH_TTY}" ] || [ -n "${SSH_CONNECTION}" ]; then
+    printf "\1\e[49;38;5;196m\2" #< если локальный
+  else
+    printf "\1\e[49;38;5;228m\2" #< если ssh
+  fi
+  printf '%s\1\e[0m\2 ' "${HOSTNAME}"
+}
+
+function ubppp_print_branch { # @mark function ubppp_print_branch
+  if [ -n "${BPPP_CUR_BRH}" ]; then
+    if [ "${BPPP_CUR_BRH}" = "master" ] || [ "${BPPP_CUR_BRH}" = "main" ]; then
+      local cf_brh='\e[49;4;58;5;228'
+    else
+      local cf_brh='\e[49;4;58;5;196'
+    fi
+    if [ "$(git status --porcelain 2>/dev/null | wc -l)" = "0" ]; then
+      cf_brh="${cf_brh};38;5;228m"
+    else
+      cf_brh="${cf_brh};38;5;196m"
+    fi
+    local stage_count="$(git stash list 2>/dev/null | wc -l)"
+    if [ "${stage_count}" = "0" ]
+    then
+      stage_count=''
+    else
+      stage_count="{${stage_count}}"
+    fi
+    printf '\1%b\2%s\1\e[0m\2%s \1%b\2%s\1\e[0m\2 ' "${cf_brh}" "${BPPP_CUR_BRH}" "${stage_count}" "${BPPP_CF_SUBDIR}" "${BPPP_CUR_SUBDIR}"
+  fi #---
+}
+
+function ubppp_print_brc { # @mark function ubppp_print_brc
+  if (("$EUID" == 0)); then
+    printf '\1\e[49;38;5;196m\2❯\1\e[0m\2 ' #< если root
+  else
+    printf '\1\e[49;38;5;228m\2❯\1\e[0m\2 ' #< если нет
+  fi
+}
+
+function bppp_pre_command { # @mark function bppp_pre_command
   local -r ERR=${PIPESTATUS[*]}
 
   ((++BPPP_CCOUNTER))
 
-  # echo "" >> $LOGFILE
-  # echo "bppp_pre_command *******************"  #>> $LOGFILE
-  # echo ">    BASH_COMMAND  = ${BASH_COMMAND}"  #>> $LOGFILE
-  # echo ">    BPPP_CCOUNTER = ${BPPP_CCOUNTER}" #>> $LOGFILE
+  # echo " "                                     >> $LOGFILE
+  # echo "bppp_pre_command *******************"  >> $LOGFILE
+  # echo ">    BASH_COMMAND  = ${BASH_COMMAND}"  >> $LOGFILE
+  # echo ">    BPPP_CCOUNTER = ${BPPP_CCOUNTER}" >> $LOGFILE
   # echo "ERR      = ${ERR}" >> $LOGFILE
   # echo "BPPP_FLAG  = ${BPPP_FLAG}" >> $LOGFILE
 
-  [[ "${BASH_COMMAND}" == "trap 'bppp_pre_command' DEBUG" ]] && {
-    BPPP_TIMESTAMP=$(($(date +%s) - BPPP_TIMESTAMP)) #< время выполнения команды
+  [[ "${BASH_COMMAND}" == "trap 'bppp_pre_command' DEBUG" ]] && { # все команды выполнены
+    BPPP_TIMESTAMP=$(($(date +%s) - BPPP_TIMESTAMP))              #< время выполнения команды
     BPPP_ERR_LINE="${ERR}"
     # echo ">    BPPP_TIMESTAMP = ${BPPP_TIMESTAMP}" #>> $LOGFILE
     return
   }
   [[ "${BASH_COMMAND}" == "bppp_post_command" ]] && {
-    # BPPP_FLAG=1
     return
   }
 
-  #trap - DEBUG # @fixme TODO точно надо?
-
-  if ((BPPP_CCOUNTER == 1)); then #if ((BPPP_FLAG == 1)); then
-    # BPPP_FLAG=0
-    # echo "!устанавлюю BPPP_FLAG=0" >> $LOGFILE
-
-    # tput sgr0; stty -g >> $LOGFILE
-    #    серый цвет, фон по умолчанию
-    # if [[ "${TERM_PROGRAM}" = "vscode" ]]; then
-    #   printf '%b' "\e[49;38;5;239m"
-    #   printf %.s"‾" $(seq $((COLUMNS-1)))
-    #   printf '\n%b' "\e[0m"
-    # else
-      printf '%b' '\e[49;38;5;239;53m'
-      printf '%*s' $((COLUMNS-1)) ''
-      printf '\n%b' '\e[0m'
-    # fi
-    tput sgr0
+  if ((BPPP_CCOUNTER == 1)); then
+    tput sgr0                       #< линия разделитель
+    printf '%b' '\e[49;38;5;239;9m' # 53 | 9
+    printf '%*s' $((COLUMNS - 1)) ''
+    printf '\n%b' '\e[0m'
+    tput sgr0 #<
 
     # echo "!сброс, рисую полоску" >> $LOGFILE
 
     BPPP_TIMESTAMP=$(date +%s) #< время начала выполнения команды
     # echo ">    BPPP_TIMESTAMP = ${BPPP_TIMESTAMP}" #>> $LOGFILE
-    return
   fi
+
+  # поменять заголовок окна на текущую команду
+  printf '\033]0;%s\a' "${USER}@${HOSTNAME}> ${BASH_COMMAND:0:25}"
+
 }
 
-function bppp_post_command { # @mark: function bppp_post_command
+function bppp_post_command { # @mark function bppp_post_command
   # echo "bppp_post_command *******************************************" #>> $LOGFILE
   # echo ">    BPPP_CCOUNTER = ${BPPP_CCOUNTER}"                              #>> $LOGFILE
 
@@ -212,7 +222,9 @@ function bppp_post_command { # @mark: function bppp_post_command
     ubppp_print_nfo_line "${BPPP_TIMESTAMP}" ${BPPP_ERR_LINE}
     BPPP_ERR_LINE=''
   else
-    printf '%b' "\033[s\033[3A"
+    printf '%b' "\033[s\033[2A" #< если нет команды (ентер в пустой строке)
+    #< перед рисованием сдвинутся вверх 2строки
+    # @fixme: не очищается строка ввода после C-c
   fi
 
   ubppp_print_progect_dir
@@ -255,18 +267,11 @@ DEB_CHROOT=${debian_chroot:+($debian_chroot)}
 # calculates the size of the prompt. The wrap will not work with command
 # substitution, in which case the raw \1 \2 must be used.
 if [ "$color_prompt" = yes ]; then
-  # -TODO: полностью избавится от содержимого PS1, все рисовать в ubppp_print_progect_dir
-  # ! так не получится PS1=""; строка вввода начинает вести себя странно при
-  # перемещении по истории
+  # @todo: строить PS1 в ф-циях
   #@mark: PROMPT_COMMAND=
   PROMPT_COMMAND="trap 'bppp_pre_command' DEBUG; bppp_post_command"
   #@mark: PS1=
-  PS1='${DEB_CHROOT}\
-\[${BPPP_COLOR_USER}\]\u\[\e[0m\]@\
-\[${BPPP_COLOR_HOST}\]\h\[\e[0m\] \
-\[${BPPP_CF_BRH}\]\[${BPPP_CB_BRH}\]${BPPP_CUR_BRH}\[\e[0m\] \
-\[${BPPP_CF_SUBDIR}\]${BPPP_CUR_SUBDIR}\[\e[0m\] \
-\[${BPPP_COLOR_USER}\]❱\[\e[0m\] \[\e[1m\]'
+  PS1='${DEB_CHROOT}$(ubppp_print_user_host)$(ubppp_print_branch)$(ubppp_print_brc)\[\e[0;1m\]'
 
 else
   PS1='${DEB_CHROOT}\u@\h${BPPP_CUR_SUBDIR}\$ '
