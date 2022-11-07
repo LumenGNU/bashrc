@@ -5,7 +5,8 @@
 
 # @see: https://gogh-co.github.io/Gogh/
 
-# fonts-powerline
+# font-powerline
+# font-awesome
 
 # declare -r LOGFILE=/run/user/1000/bppp.log
 # echo "" >> $LOGFILE
@@ -73,7 +74,7 @@ function ubppp_print_nfo_line { # @mark function ubppp_print_nfo_line
 }
 
 function ubppp_print_progect_dir { # @mark function ubppp_print_progect_dir
-  # tput sgr0                        # @fixme: TODO FIME: точно надо?
+#@fixme: Если commanprompt вывелся в первой строке перерисовать все заново
 
   # получить путь к корню репозитория
   local BPPP_TOPLEVEL
@@ -93,7 +94,7 @@ function ubppp_print_progect_dir { # @mark function ubppp_print_progect_dir
   } || printf -v BPPP_CF_SUBDIR '\e[38;5;196m'                   #< нет
 
   { [[ -z "${IS_GIT_FLAG}" ]] && local icon='\uf07b'; } || #< обычный каталог
-    local icon='\uf121'                                    #< git репозиторий
+    local icon='\uf1d3' #'\uf1d2' #'\uf841' #'\uf121'                                    #< git репозиторий
   printf '\e[0;48;5;53m%b %b ' "${BPPP_CF_SUBDIR}" ${icon}
   unset icon
 
@@ -243,7 +244,6 @@ function bppp_postcommand { # @mark function bppp_postcommand
   else
     printf '%b' "\033[s\033[2A" #< если нет команды (ентер в пустой строке)
     #< перед рисованием сдвинутся вверх 2строки
-    # @fixme: не очищается строка ввода после C-c
   fi
 
   ubppp_print_progect_dir
