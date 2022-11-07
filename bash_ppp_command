@@ -50,9 +50,11 @@ function ubppp_print_nfo_line { # @mark function ubppp_print_nfo_line
   for n in "$@"; do #< перебор всех параметров (коды завершения)
     # и составление одной раскрашеной строки
     if ((n == 0)); then
-      _err_line="${_err_line}\e[0;38;5;193;48;5;34m $n " #< нулевой код (fg св-зеленый, bg зеленый)
+      # _err_line="${_err_line}\e[0;38;5;193;48;5;34m $n " #< нулевой код (fg св-зеленый, bg зеленый)
+      _err_line="${_err_line}\e[38;5;34;49m $n " #< нулевой код (fg св-зеленый, bg по умолчанию)
     else
-      _err_line="${_err_line}\e[0;38;5;225;48;5;196m $n " #< не нулевой код (fg св-красный, bg красный)
+      # _err_line="${_err_line}\e[0;38;5;225;48;5;196m $n " #< не нулевой код (fg св-красный, bg красный)
+      _err_line="${_err_line}\e[38;5;196;49m $n " #< не нулевой код (fg св-красный, bg по умолчанию)
     fi
     ((_padding = _padding + 2))
   done
@@ -290,7 +292,8 @@ if [[ "$color_prompt" = yes ]] &&  [[ "${VSCODE_TERMINAL}" != "yes" ]] ; then
   # shellcheck disable=SC2016,SC2034
   PS0='$(bppp_precommand)'
   # @mark: PS1=
-  PS1='${DEB_CHROOT}$(ubppp_print_user_host)$(ubppp_print_branch)$(ubppp_print_brc)\[\e[0;1m\]'
+  PS1='${DEB_CHROOT}$(ubppp_print_user_host)$(ubppp_print_branch)$(ubppp_print_brc)\[\e[0K\]\[\e[0;1m\]'
+  #                                                                                 ^-очистить строку от возможного мусора
 
 else
   PROMPT_DIRTRIM=3
