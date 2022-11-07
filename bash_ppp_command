@@ -18,10 +18,6 @@ declare BPPP_CUR_BRH=''
 
 declare -i BPPP_CCOUNTER=0
 
-# declare -i BPPP_TIMESTAMP=0
-
-# declare BPPP_COLOR_USER=''
-# declare BPPP_COLOR_HOST=''
 declare BPPP_CF_SUBDIR=''
 
 # функция рисует инф-строку после выполнения комманды. Типа такой:
