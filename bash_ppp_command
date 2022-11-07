@@ -1,7 +1,9 @@
 #!/bin/bash
 
-#@see: https://en.wikipedia.org/wiki/ANSI_escape_code
-#@see: https://wiki.archlinux.org/title/Bash/Prompt_customization
+# @see: https://en.wikipedia.org/wiki/ANSI_escape_code
+# @see: https://wiki.archlinux.org/title/Bash/Prompt_customization
+
+# @see: https://gogh-co.github.io/Gogh/
 
 # fonts-powerline
 
@@ -15,7 +17,7 @@ declare BPPP_CUR_BRH=''
 
 declare -i BPPP_CCOUNTER=0
 
-declare -i BPPP_TIMESTAMP=0
+# declare -i BPPP_TIMESTAMP=0
 
 # declare BPPP_COLOR_USER=''
 # declare BPPP_COLOR_HOST=''
@@ -69,7 +71,7 @@ function ubppp_print_nfo_line { # @mark function ubppp_print_nfo_line
 }
 
 function ubppp_print_progect_dir { # @mark function ubppp_print_progect_dir
-  tput sgr0                        # @fixme: TODO FIME: точно надо?
+  # tput sgr0                        # @fixme: TODO FIME: точно надо?
 
   # получить путь к корню репозитория
   local BPPP_TOPLEVEL
@@ -173,29 +175,46 @@ function ubppp_print_brc { # @mark function ubppp_print_brc
   fi
 }
 
-function bppp_pre_command { # @mark function bppp_pre_command
+function bppp_trap_precommand { # @mark function bppp_trap_precommand
   local -r ERR=${PIPESTATUS[*]}
 
   ((++BPPP_CCOUNTER))
 
   # echo " "                                     >> $LOGFILE
-  # echo "bppp_pre_command *******************"  >> $LOGFILE
+  # echo "bppp_trap_precommand *******************"  >> $LOGFILE
   # echo ">    BASH_COMMAND  = ${BASH_COMMAND}"  >> $LOGFILE
   # echo ">    BPPP_CCOUNTER = ${BPPP_CCOUNTER}" >> $LOGFILE
   # echo "ERR      = ${ERR}" >> $LOGFILE
   # echo "BPPP_FLAG  = ${BPPP_FLAG}" >> $LOGFILE
 
-  [[ "${BASH_COMMAND}" == "trap 'bppp_pre_command' DEBUG" ]] && { # все команды выполнены
-    BPPP_TIMESTAMP=$(($(date +%s) - BPPP_TIMESTAMP))              #< время выполнения команды
+  [[ "${BASH_COMMAND}" == "trap 'bppp_trap_precommand' DEBUG" ]] && { # все команды выполнены
+    # BPPP_TIMESTAMP=$(($(date +%s) - BPPP_TIMESTAMP))              #< время выполнения команды # @todo: использовать $SECONDS
     BPPP_ERR_LINE="${ERR}"
-    # echo ">    BPPP_TIMESTAMP = ${BPPP_TIMESTAMP}" #>> $LOGFILE
     return
   }
-  [[ "${BASH_COMMAND}" == "bppp_post_command" ]] && {
+  [[ "${BASH_COMMAND}" == "bppp_postcommand" ]] && {
     return
   }
 
-  if ((BPPP_CCOUNTER == 1)); then
+  # if ((BPPP_CCOUNTER == 1)); then
+  #   tput sgr0                       #< линия разделитель # @-todo PS0
+  #   printf '%b' '\e[49;38;5;239;9m' # 53 | 9
+  #   printf '%*s' $((COLUMNS - 1)) ''
+  #   printf '\n%b' '\e[0m'
+  #   tput sgr0 #<
+
+  #   # echo "!сброс, рисую полоску" >> $LOGFILE
+
+  #   # BPPP_TIMESTAMP=$(date +%s) #< время начала выполнения команды
+  #   SECONDS=0
+  # fi
+
+  # поменять заголовок окна на текущую команду
+  printf '\033]0;%s\a' "${USER}@${HOSTNAME}> ${BASH_COMMAND:0:25}"
+
+}
+
+function bppp_precommand { # @mark function bppp_precommand
     tput sgr0                       #< линия разделитель
     printf '%b' '\e[49;38;5;239;9m' # 53 | 9
     printf '%*s' $((COLUMNS - 1)) ''
@@ -204,22 +223,19 @@ function bppp_pre_command { # @mark function bppp_pre_command
 
     # echo "!сброс, рисую полоску" >> $LOGFILE
 
-    BPPP_TIMESTAMP=$(date +%s) #< время начала выполнения команды
-    # echo ">    BPPP_TIMESTAMP = ${BPPP_TIMESTAMP}" #>> $LOGFILE
-  fi
-
-  # поменять заголовок окна на текущую команду
-  printf '\033]0;%s\a' "${USER}@${HOSTNAME}> ${BASH_COMMAND:0:25}"
-
+    # BPPP_TIMESTAMP=$(date +%s) #< время начала выполнения команды
+    SECONDS=0
 }
 
-function bppp_post_command { # @mark function bppp_post_command
-  # echo "bppp_post_command *******************************************" #>> $LOGFILE
+function bppp_postcommand { # @mark function bppp_postcommand
+  # echo "bppp_postcommand *******************************************" #>> $LOGFILE
   # echo ">    BPPP_CCOUNTER = ${BPPP_CCOUNTER}"                              #>> $LOGFILE
 
+  tput rmso
+  
   if ((BPPP_CCOUNTER > 2)) && [[ -n "${BPPP_ERR_LINE}" ]]; then
     # shellcheck disable=SC2086
-    ubppp_print_nfo_line "${BPPP_TIMESTAMP}" ${BPPP_ERR_LINE}
+    ubppp_print_nfo_line "${SECONDS}" ${BPPP_ERR_LINE}
     BPPP_ERR_LINE=''
   else
     printf '%b' "\033[s\033[2A" #< если нет команды (ентер в пустой строке)
@@ -267,10 +283,12 @@ DEB_CHROOT=${debian_chroot:+($debian_chroot)}
 # calculates the size of the prompt. The wrap will not work with command
 # substitution, in which case the raw \1 \2 must be used.
 if [[ "$color_prompt" = yes ]] &&  [[ "${VSCODE_TERMINAL}" != "yes" ]] ; then
-  # @todo: строить PS1 в ф-циях
-  #@mark: PROMPT_COMMAND=
-  PROMPT_COMMAND="trap 'bppp_pre_command' DEBUG; bppp_post_command"
-  #@mark: PS1=
+  # @mark: PROMPT_COMMAND=
+  PROMPT_COMMAND="trap 'bppp_trap_precommand' DEBUG; bppp_postcommand"
+  # @mark PS0=
+  # shellcheck disable=SC2016,SC2034
+  PS0='$(bppp_precommand)'
+  # @mark: PS1=
   PS1='${DEB_CHROOT}$(ubppp_print_user_host)$(ubppp_print_branch)$(ubppp_print_brc)\[\e[0;1m\]'
 
 else
