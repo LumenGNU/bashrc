@@ -208,6 +208,7 @@ function bppp_trap_precommand { # @mark function bppp_trap_precommand
   #   # BPPP_TIMESTAMP=$(date +%s) #< время начала выполнения команды
   #   SECONDS=0
   # fi
+  ((BPPP_CCOUNTER == 1)) && SECONDS=0
 
   # поменять заголовок окна на текущую команду
   printf '\033]0;%s\a' "${USER}@${HOSTNAME}> ${BASH_COMMAND:0:25}"
@@ -224,7 +225,7 @@ function bppp_precommand { # @mark function bppp_precommand
     # echo "!сброс, рисую полоску" >> $LOGFILE
 
     # BPPP_TIMESTAMP=$(date +%s) #< время начала выполнения команды
-    SECONDS=0
+    # SECONDS=0 #< @-bug: тут не работает
 }
 
 function bppp_postcommand { # @mark function bppp_postcommand
