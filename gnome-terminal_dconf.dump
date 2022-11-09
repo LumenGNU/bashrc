@@ -4,14 +4,18 @@ default='d7e9f406-12ac-4112-a9a2-a847a9eec96f'
 
 [:d7e9f406-12ac-4112-a9a2-a847a9eec96f]
 background-color='rgb(30,36,47)'
-foreground-color='rgb(237,236,238)'
-cell-height-scale=1.1
+cell-height-scale=1.1000000000000001
 cell-width-scale=1.0
+cursor-background-color='rgb(121,132,151)'
 cursor-blink-mode='on'
+cursor-colors-set=true
+cursor-foreground-color='rgb(121,132,151)'
 cursor-shape='underline'
 default-size-columns=132
 default-size-rows=43
 font='DejaVu Sans Mono for Powerline 12'
+foreground-color='rgb(241,204,178)'
+highlight-colors-set=false
 scrollbar-policy='never'
 use-system-font=false
 use-theme-colors=false
