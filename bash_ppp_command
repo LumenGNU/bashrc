@@ -5,6 +5,9 @@
 
 # @see: https://gogh-co.github.io/Gogh/
 
+# @see: Export Gnome Terminal Profile <https://gist.github.com/fdaciuk/9ec4d8afc32063a6f74a21f8308e3807>
+
+
 # font-powerline
 # font-awesome
 
@@ -48,10 +51,10 @@ function ubppp_print_nfo_line { # @mark function ubppp_print_nfo_line
     # и составление одной раскрашеной строки
     if ((n == 0)); then
       # _err_line="${_err_line}\e[0;38;5;193;48;5;34m $n " #< нулевой код (fg св-зеленый, bg зеленый)
-      _err_line="${_err_line}\e[38;5;34;49m $n " #< нулевой код (fg св-зеленый, bg по умолчанию)
+      _err_line="${_err_line}\e[38;2;0;128;0;49m $n " #< нулевой код (fg св-зеленый, bg по умолчанию)
     else
       # _err_line="${_err_line}\e[0;38;5;225;48;5;196m $n " #< не нулевой код (fg св-красный, bg красный)
-      _err_line="${_err_line}\e[38;5;196;49m $n " #< не нулевой код (fg св-красный, bg по умолчанию)
+      _err_line="${_err_line}\e[38;2;255;105;51;49m $n " #< не нулевой код (fg св-красный, bg по умолчанию)
     fi
     ((_padding = _padding + 2))
   done
@@ -62,7 +65,7 @@ function ubppp_print_nfo_line { # @mark function ubppp_print_nfo_line
   printf '\n'
   # не работает в vscode
   # # серый цвет----v + Overlined
-  printf '\e[38;5;239;53m %s' "${_timestamp}"
+  printf '\e[38;2;76;85;101;53m %s' "${_timestamp}"
   printf '%*s' $((COLUMNS - 1 - _err_line_len - _padding)) ''
   printf '%b\e[0m' "${_err_line}"
   printf '\n\n'
@@ -86,12 +89,13 @@ function ubppp_print_progect_dir { # @mark function ubppp_print_progect_dir
   # цвет для текущего текста каталог/репозиторий, зависит от того есть ли
   # разрешение на запись в каталог/репозиторий
   {
-    [[ -w "${PWD}" ]] && printf -v BPPP_CF_SUBDIR '\e[38;5;228m' #< есть
-  } || printf -v BPPP_CF_SUBDIR '\e[38;5;196m'                   #< нет
+    [[ -w "${PWD}" ]] && printf -v BPPP_CF_SUBDIR '\e[38;2;255;209;51m' #< есть
+  } || printf -v BPPP_CF_SUBDIR '\e[38;2;255;114;92m'                   #< нет
 
   { [[ -z "${IS_GIT_FLAG}" ]] && local icon='\uf07b'; } || #< обычный каталог
-    local icon='\uf1d3' #'\uf1d2' #'\uf841' #'\uf121'                                    #< git репозиторий
-  printf '\e[0;48;5;53m%b %b ' "${BPPP_CF_SUBDIR}" ${icon}
+    local icon='\uf841' #'\uf1d2' #'\uf841' #'\uf121'                                    #< git репозиторий
+  printf '\e[0;1;48;2;21;28;33m%b %b ' "${BPPP_CF_SUBDIR}" ${icon}
+  #printf '\e[0;1;7;48;2;21;28;33m%b %b ' "${BPPP_CF_SUBDIR}" ${icon} #< invert
   unset icon
 
   local _COLUMNS=$((COLUMNS - 5))
@@ -128,17 +132,17 @@ function ubppp_print_user_host { # @mark function ubppp_print_user_host
   # @fixme: протестировать
   # юзер
   if (("$EUID" == 0)); then
-    printf "\1\e[49;38;5;196m\2" #< если root
+    printf "\1\e[49;38;2;255;29;140m\2" #< если root
   else
-    printf "\1\e[49;38;5;228m\2" #< если нет
+    printf "\1\e[49;38;2;228;149;69m\2" #< если нет
   fi
   printf '%s\1\e[0m\2@' "${USER}" #< разделитель
   # хост
   # @todo [ или [[
   if [ -n "${SSH_CLIENT}" ] || [ -n "${SSH_TTY}" ] || [ -n "${SSH_CONNECTION}" ]; then
-    printf "\1\e[49;38;5;196m\2" #< если локальный
+    printf "\1\e[49;38;2;255;29;140m\2" #< если ssh
   else
-    printf "\1\e[49;38;5;228m\2" #< если ssh
+    printf "\1\e[49;38;2;228;149;69m\2" #< если локальный
   fi
   printf '%s\1\e[0m\2 ' "${HOSTNAME}"
 }
@@ -146,14 +150,14 @@ function ubppp_print_user_host { # @mark function ubppp_print_user_host
 function ubppp_print_branch { # @mark function ubppp_print_branch
   if [ -n "${BPPP_CUR_BRH}" ]; then
     if [ "${BPPP_CUR_BRH}" = "master" ] || [ "${BPPP_CUR_BRH}" = "main" ]; then
-      local cf_brh='\e[49;4;58;5;228'
+      local cf_brh='\e[49;4;58;2;228;149;69' #< main/master
     else
-      local cf_brh='\e[49;4;58;5;196'
+      local cf_brh='\e[49;4;58;2;255;26;241' #< не main/master
     fi
     if [ "$(git status --porcelain 2>/dev/null | wc -l)" = "0" ]; then
-      cf_brh="${cf_brh};38;5;228m"
+      cf_brh="${cf_brh};38;2;228;149;69m" #< clean
     else
-      cf_brh="${cf_brh};38;5;196m"
+      cf_brh="${cf_brh};38;2;74;210;233m" #< dirty
     fi
     local stage_count="$(git stash list 2>/dev/null | wc -l)"
     if [ "${stage_count}" = "0" ]
@@ -168,9 +172,9 @@ function ubppp_print_branch { # @mark function ubppp_print_branch
 
 function ubppp_print_brc { # @mark function ubppp_print_brc
   if (("$EUID" == 0)); then
-    printf '\1\e[49;38;5;196m\2❯\1\e[0m\2 ' #< если root
+    printf '\1\e[49;38;2;255;29;140m\2❯\1\e[0m\2 ' #< если root
   else
-    printf '\1\e[49;38;5;228m\2❯\1\e[0m\2 ' #< если нет
+    printf '\1\e[49;38;2;228;149;69m\2❯\1\e[0m\2 ' #< если нет
   fi
 }
 
@@ -216,7 +220,7 @@ function bppp_trap_precommand { # @mark function bppp_trap_precommand
 
 function bppp_precommand { # @mark function bppp_precommand
     tput sgr0                       #< линия разделитель
-    printf '%b' '\e[49;38;5;239;9m' # 53 | 9
+    printf '%b' '\e[49;38;2;76;85;101;9m' # 53 | 9
     printf '%*s' $((COLUMNS - 1)) ''
     printf '\n%b' '\e[0m'
     tput sgr0 #<
@@ -281,7 +285,8 @@ DEB_CHROOT=${debian_chroot:+($debian_chroot)}
 # This helps Bash ignore non-printable characters so that it correctly
 # calculates the size of the prompt. The wrap will not work with command
 # substitution, in which case the raw \1 \2 must be used.
-if [[ "$color_prompt" = yes ]] &&  [[ "${VSCODE_TERMINAL}" != "yes" ]] ; then
+if [[ "$color_prompt" = yes ]] &&  [[ "${TERM_PROGRAM}" != "vscode" ]] ; then
+#@todo: check COLORTERM=truecolor|24bit
   # @mark: PROMPT_COMMAND=
   PROMPT_COMMAND="trap 'bppp_trap_precommand' DEBUG; bppp_postcommand"
   # @mark PS0=
