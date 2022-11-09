@@ -1,0 +1,125 @@
+<html>
+<head>
+
+<link rel="stylesheet" href="./theme.css">
+<style>
+
+
+
+body {
+    display: flex;
+    background-color: #2d374d;
+}
+
+#panno {
+    background-color: var(--main_bg_color);
+    color: var(--main_fg_color);
+    
+    margin: auto;
+    padding: 7px;
+    width: max-content;
+}
+
+/*prj line and subdir >>>*/
+.prj_line, .subdir {
+    color: var(--prj_fg_color);
+}
+
+.prj_line.warn, .subdir.warn {
+	color: var(--warn_prj_fg_color);
+}
+
+
+.prj_line {
+	background-color: var(--prj_bg_color);
+}
+
+.prj_line.warn {
+	background-color: var(--warn_prj_bg_color);
+}
+/*<<<*/
+
+/*borders end errors >>>*/
+.line1 {
+	text-decoration-line: line-through;
+}
+.line2, .err {
+	text-decoration-line: overline;
+}
+
+.err.Green {
+	color: var(--ok_fg_color);
+}
+
+.err.Red {
+	color: var(--alert_fg_color);
+}
+/*<<<*/
+
+.Gray {
+	color: var(--gray_fg_color);
+}
+
+.user, .host, .branch {
+	color: var(--main2_fg_color);
+}
+
+/*branch >>>*/
+.branch {
+	text-decoration-line: underline;
+	text-decoration-color: var(--main2_fg_color);
+}
+
+	
+.branch.nomain {
+	text-decoration-color: var(--branch_warn_color);
+}
+	
+.branch.dirty {
+	color: var(--branch_dirty_color);
+}
+/*<<<*/	
+
+	
+.warn {
+	color: var(--warn_fg_color);
+}
+
+</style>
+</head>
+<body>
+<div id=panno>
+
+<pre>
+<span class="prj_line">   /media/lumen/FILES/Projects/bashrc                                                                                             </span>
+<span class="user">lumen</span>@<span class="host warn">NEe6440</span> <span class="branch">master</span> <span class="subdir">./</span> <span class="user">❯</span> <b>env|grep -i &apos;*term*&apos;</b>
+<span class="line1 Gray">                                                                                                                                   </span>
+
+<span class="line2 Gray"> [00:00:06]                                                                                                                  </span><span class="err Green"> 0 </span><span class="err Red"> 1 </span>
+
+<span class="prj_line warn">   /media/lumen/FILES/Projects/bashrc                                                                                             </span>
+<span class="user">lumen</span>@<span class="host">e6440</span> <span class="branch dirty">master</span> <span class="subdir warn">./test/test</span> <span class="user">❯</span> <b>env|grep -i &apos;term&apos;</b>
+<span class="line1 Gray">                                                                                                                                   </span>
+COLORTERM=truecolor
+GNOME_TERMINAL_SCREEN=/org/gnome/Terminal/screen/4543e7b9_1139_4290_a60f_4e47532163e2
+TERM=xterm-256color
+GNOME_TERMINAL_SERVICE=:1.3843
+
+<span class="line2 Gray">                                                                                                                             </span><span class="err Green"> 0  0 </span>
+
+<span class="prj_line">   /media/lumen/FILES/Projects/bashrc                                                                                             </span>
+<span class="user warn">NElumen</span>@<span class="host">e6440</span> <span class="branch nomain">NOmaster</span> <span class="subdir">./</span> <span class="user warn">❯</span> <b>xterm</b>
+<span class="line1 Gray">                                                                                                                                   </span>
+
+Команда «xterm» не найдена, но может быть установлена с помощью:
+
+sudo apt install xterm
+
+
+<span class="line2 Gray">                                                                                                                              </span><span class="err Red"> 127 </span>
+
+</pre>
+
+</div>
+</body>
+</html>
