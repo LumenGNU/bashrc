@@ -7,7 +7,6 @@
 
 # @see: Export Gnome Terminal Profile <https://gist.github.com/fdaciuk/9ec4d8afc32063a6f74a21f8308e3807>
 
-
 # font-powerline
 # font-awesome
 
@@ -73,7 +72,7 @@ function ubppp_print_nfo_line { # @mark function ubppp_print_nfo_line
 }
 
 function ubppp_print_progect_dir { # @mark function ubppp_print_progect_dir
-#@fixme: Если commanprompt вывелся в первой строке перерисовать все заново
+  #@fixme: Если commanprompt вывелся в первой строке перерисовать все заново
 
   # получить путь к корню репозитория
   local BPPP_TOPLEVEL
@@ -93,7 +92,7 @@ function ubppp_print_progect_dir { # @mark function ubppp_print_progect_dir
   } || printf -v BPPP_CF_SUBDIR '\e[38;2;255;114;92m'                   #< нет
 
   { [[ -z "${IS_GIT_FLAG}" ]] && local icon='\uf07b'; } || #< обычный каталог
-    local icon='\uf841' #'\uf1d2' #'\uf841' #'\uf121'                                    #< git репозиторий
+    local icon='\uf841'                                    #'\uf1d2' #'\uf841' #'\uf121'                                    #< git репозиторий
   printf '\e[0;1;48;2;21;28;33m%b %b ' "${BPPP_CF_SUBDIR}" ${icon}
   #printf '\e[0;1;7;48;2;21;28;33m%b %b ' "${BPPP_CF_SUBDIR}" ${icon} #< invert
   unset icon
@@ -160,8 +159,7 @@ function ubppp_print_branch { # @mark function ubppp_print_branch
       cf_brh="${cf_brh};38;2;74;210;233m" #< dirty
     fi
     local stage_count="$(git stash list 2>/dev/null | wc -l)"
-    if [ "${stage_count}" = "0" ]
-    then
+    if [ "${stage_count}" = "0" ]; then
       stage_count=''
     else
       stage_count="{${stage_count}}"
@@ -198,6 +196,8 @@ function bppp_trap_precommand { # @mark function bppp_trap_precommand
   [[ "${BASH_COMMAND}" == "bppp_postcommand" ]] && {
     return
   }
+  
+  # @todo: if BASH_COMMAND == sudo после нарисовать еще один бордер
 
   # if ((BPPP_CCOUNTER == 1)); then
   #   tput sgr0                       #< линия разделитель # @-todo PS0
@@ -218,17 +218,17 @@ function bppp_trap_precommand { # @mark function bppp_trap_precommand
 
 }
 
-function bppp_precommand { # @mark function bppp_precommand
-    tput sgr0                       #< линия разделитель
-    printf '%b' '\e[49;38;2;76;85;101;9m' # 53 | 9
-    printf '%*s' $((COLUMNS - 1)) ''
-    printf '\n%b' '\e[0m'
-    tput sgr0 #<
+function bppp_precommand {              # @mark function bppp_precommand
+  tput sgr0                             #< линия разделитель
+  printf '%b' '\e[49;38;2;76;85;101;9m' # 53 | 9
+  printf '%*s' $((COLUMNS - 1)) ''
+  printf '\n%b' '\e[0m'
+  tput sgr0 #<
 
-    # echo "!сброс, рисую полоску" >> $LOGFILE
+  # echo "!сброс, рисую полоску" >> $LOGFILE
 
-    # BPPP_TIMESTAMP=$(date +%s) #< время начала выполнения команды
-    # SECONDS=0 #< @-bug: тут не работает
+  # BPPP_TIMESTAMP=$(date +%s) #< время начала выполнения команды
+  # SECONDS=0 #< @-bug: тут не работает
 }
 
 function bppp_postcommand { # @mark function bppp_postcommand
@@ -236,7 +236,7 @@ function bppp_postcommand { # @mark function bppp_postcommand
   # echo ">    BPPP_CCOUNTER = ${BPPP_CCOUNTER}"                              #>> $LOGFILE
 
   tput rmso
-  
+
   if ((BPPP_CCOUNTER > 2)) && [[ -n "${BPPP_ERR_LINE}" ]]; then
     # shellcheck disable=SC2086
     ubppp_print_nfo_line "${SECONDS}" ${BPPP_ERR_LINE}
@@ -285,15 +285,16 @@ DEB_CHROOT=${debian_chroot:+($debian_chroot)}
 # This helps Bash ignore non-printable characters so that it correctly
 # calculates the size of the prompt. The wrap will not work with command
 # substitution, in which case the raw \1 \2 must be used.
-if [[ "$color_prompt" = yes ]] &&  [[ "${TERM_PROGRAM}" != "vscode" ]] ; then
-#@todo: check COLORTERM=truecolor|24bit
+if [[ "$color_prompt" = yes ]] && [[ "${TERM_PROGRAM}" != "vscode" ]]; then
+  #@todo: check COLORTERM=truecolor|24bit
   # @mark: PROMPT_COMMAND=
   PROMPT_COMMAND="trap 'bppp_trap_precommand' DEBUG; bppp_postcommand"
   # @mark PS0=
   # shellcheck disable=SC2016,SC2034
   PS0='$(bppp_precommand)'
   # @mark: PS1=
-  PS1='${DEB_CHROOT}$(ubppp_print_user_host)$(ubppp_print_branch)$(ubppp_print_brc)\[\e[0K\]\[\e[0;1m\]'
+  PS1='${DEB_CHROOT}$(ubppp_print_user_host)$(ubppp_print_branch)$(ubppp_print_brc)\[\e[0;1m\]'
+  #                                                                                 \[\e[0K\]
   #                                                                                 ^-очистить строку от возможного мусора
 
 else
