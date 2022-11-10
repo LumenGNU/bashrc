@@ -242,8 +242,10 @@ function bppp_postcommand { # @mark function bppp_postcommand
     ubppp_print_nfo_line "${SECONDS}" ${BPPP_ERR_LINE}
     BPPP_ERR_LINE=''
   else
-    printf '%b' "\033[s\033[2A" #< если нет команды (ентер в пустой строке)
+    printf '%b' "\e[2A" #< если нет команды (ентер в пустой строке|C-c)
     #< перед рисованием сдвинутся вверх 2строки
+    printf '%b' "\e[0J"
+
   fi
 
   ubppp_print_progect_dir
