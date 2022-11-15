@@ -17,7 +17,7 @@ esac
 HISTCONTROL=ignoreboth:erasedups
 # HISTCONTROL=:ignorespace:ignoredups
 
-HISTIGNORE='ls *:rm *:encfs *:'
+HISTIGNORE='rm *:encfs *:'
 
 # append to the history file, don't overwrite it
 shopt -s histappend
