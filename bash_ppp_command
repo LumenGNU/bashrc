@@ -323,7 +323,7 @@ function bppp_print_prompt() {
   # распечатать текущий каталог/репозиторий, обрезав начало если не помещается
   # в одну строку
   ((${#_bppp_toplevel} > _columns)) && _bppp_toplevel="…${_bppp_toplevel: -$_columns:$_columns}"
-  printf ' %s\1\033[K\2\n' "${_bppp_toplevel}"
+  printf ' \1%b%b%b\2\n' "set_link(file://${HOSTNAME}${_bppp_toplevel}, ${_bppp_toplevel})" '\033[K' 'SGR(reset_all)'
 
 
   # region FOR_DEBUG
@@ -392,7 +392,7 @@ function bppp_print_prompt() {
       _bppp_cur_subdir="./${_bppp_cur_subdir}"
     fi
 
-    printf ' %b'\''%s'\''\1SGR(reset_all)\2 ' "${_bppp_cf_subdir}" "${_bppp_cur_subdir}"
+    printf ' \1%b%b%b\2 ' "${_bppp_cf_subdir}" "set_link(file://${HOSTNAME}${PWD}, ${_bppp_cur_subdir})" 'SGR(reset_all)'
 
   fi
 
