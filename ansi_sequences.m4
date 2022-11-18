@@ -17,14 +17,15 @@ dnl # **************************************************************************
 
 
 dnl # SGR (Select Graphic Rendition) parameters
-define(`reset_all',           0)dnl # All attributes off
+define(`reset_all',          00)dnl # All attributes off
 define(`bold_on',             1)dnl # Bold or increased intensity
 define(`dim_on',              2)dnl # Faint, decreased intensity, or dim
 define(`intensity_off',      22)dnl # off bold or dim
 define(`italic_on',           3)dnl # Italic
 define(`italic_off',         23)dnl # Neither italic, nor blackletter
-define(`underline_on',        4)dnl # Underline
-define(`underline2_on',      21)dnl # Doubly underlined; or: not bold
+define(`underline_on',      4:1)dnl # Underline
+define(`underline2_on',     4:2)dnl # Doubly underlined
+define(`underline3_on',     4:3)dnl # Wave underlined
 define(`underline_off',      24)dnl # Not underlined
 define(`blink_on',            5)dnl # Slow blink
 define(`blink_off',          25)dnl # Not blinking
@@ -39,7 +40,7 @@ define(`overline_off',       55)dnl # Not overlined
 
 dnl # Set foreground color in RGB format
 dnl #   set_fg_rgb(R, G, B)
-define(`set_fg_rgb',        38;2;$1;$2;$3)
+define(`set_fg_rgb',        `38;2;$1;$2;$3')
 
 dnl # Set foreground color in predefined set of 256 colors
 dnl #   set_fg_inx(color_index), 
@@ -119,7 +120,7 @@ define(`set_bg_HCyan',    106)
 define(`set_bg_HWhite',   107)
 
 dnl # ESC symbol
-define(`_ESC', `\e')
+define(`_ESC', `\033')
 dnl # BEL symbol
 define(`_BEL', `\a')
 
@@ -137,7 +138,7 @@ define(`_OSC', _ESC]$1)
 
 
 dnl # 
-define(`set_title', _OSC(0);$1;_BEL)
+define(`set_title', _OSC(0);$*_BEL)
 
 dnl # set_link(URI, text)
 define(`set_link', _join(`', _OSC(8), ;;$1\e\\$2, _OSC(8), ;;\e\\))
