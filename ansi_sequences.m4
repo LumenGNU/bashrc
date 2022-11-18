@@ -17,7 +17,7 @@ dnl # **************************************************************************
 
 
 dnl # SGR (Select Graphic Rendition) parameters
-define(`reset_all',          00)dnl # All attributes off
+define(`reset_all',           0)dnl # All attributes off
 define(`bold_on',             1)dnl # Bold or increased intensity
 define(`dim_on',              2)dnl # Faint, decreased intensity, or dim
 define(`intensity_off',      22)dnl # off bold or dim
