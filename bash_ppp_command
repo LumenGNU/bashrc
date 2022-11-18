@@ -314,10 +314,11 @@ function bppp_print_prompt() {
   # цвет для текущего текста каталог/репозиторий, зависит от того есть ли
   # разрешение на запись в этот каталог/репозиторий
   {
-    [[ -w "${PWD}" ]] && local -r _bppp_cf_subdir='\1SGR(set_fg_rgb(255,209,51))\2' #< есть
-  } || local -r _bppp_cf_subdir='\1SGR(set_fg_rgb(255,114,92))\2'                   #< нет
+    [[ -w "${PWD}" ]] && local -r _bppp_cf_subdir='SGR(set_fg_rgb(255,209,51))' #< есть
+  } || local -r _bppp_cf_subdir='SGR(set_fg_rgb(255,114,92))'                   #< нет
 
-  printf '%b %b \1SGR(bold_on)\2' "${_bppp_cf_subdir}" ${icon}
+  # @mark начало первой строки
+  printf '\1%b\2 %b \1SGR(bold_on)\2' "${_bppp_cf_subdir}" ${icon}
 
   local -r _columns=$((COLUMNS - 6))
   # распечатать текущий каталог/репозиторий, обрезав начало если не помещается
@@ -392,11 +393,12 @@ function bppp_print_prompt() {
       _bppp_cur_subdir="./${_bppp_cur_subdir}"
     fi
 
-    printf ' \1%b%b%b\2 ' "${_bppp_cf_subdir}" "set_link(file://${HOSTNAME}${PWD}, ${_bppp_cur_subdir})" 'SGR(reset_all)'
+    printf ' \1%b%b\2\1%b\2 ' "${_bppp_cf_subdir}" "set_link(file://${HOSTNAME}${PWD}, \\\2${_bppp_cur_subdir}\1)" 'SGR(reset_all)'
+    # printf '== %q' "$AAA"
 
   fi
 
-  printf '%b❯\1%b\033[J%b\2 ' "${_user_af}" 'SGR(reset_all)' 'SGR(bold_on)'
+  printf '%b❯\1%b%b%b\2 ' "${_user_af}" 'SGR(reset_all)' '\033[J' 'SGR(bold_on)'
 
   #@todo: очистить окно терминала после изменения размеров
 }
