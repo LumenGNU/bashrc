@@ -143,4 +143,4 @@ define(`set_title', _OSC(0);$*_BEL)
 dnl # set_link(URI, text)
 define(`set_link', _join(`', _OSC(8), ;;$1\e\\$2, _OSC(8), ;;\e\\))
 
-#---
+dnl #---
