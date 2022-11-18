@@ -93,9 +93,9 @@ function ubppp_print_nfo_line {
 
   printf '\n'
   # # серый цвет----v + Overlined
-  printf 'SGR(set_fg_rgb(76,85,101), overline_on) %s' "${_timestamp}"
+  printf '%b %s' 'SGR(set_fg_rgb(76,85,101), overline_on)' "${_timestamp}"
   printf '%*s' $((COLUMNS - 1 - _err_line_len - _padding)) ' '
-  printf '%b%b SGR(reset_all)' "${_err_line}" 'SGR(set_fg_rgb(76,85,101), overline_on)'
+  printf '%b%b %b' "${_err_line}" 'SGR(set_fg_rgb(76,85,101), overline_on)' 'SGR(reset_all)'
   printf '\n\n'
 }
 # endregion
@@ -306,9 +306,9 @@ function bppp_print_prompt() {
   # endregion
 
   if [[ "${PWD}" = "$(pwd -P)" ]]; then
-    printf '\1SGR(reset_all, set_bg_rgb(21,28,33))\2' # physical directory
+    printf '\1%b\2' 'SGR(reset_all, set_bg_rgb(21,28,33))' # physical directory
   else
-    printf '\1SGR(reset_all, set_bg_rgb(26,21,33))\2' # directory with symbolic links
+    printf '\1%b\2' 'SGR(reset_all, set_bg_rgb(26,21,33))' # directory with symbolic links
   fi
 
   # цвет для текущего текста каталог/репозиторий, зависит от того есть ли
@@ -317,14 +317,16 @@ function bppp_print_prompt() {
     [[ -w "${PWD}" ]] && local -r _bppp_cf_subdir='SGR(set_fg_rgb(255,209,51))' #< есть
   } || local -r _bppp_cf_subdir='SGR(set_fg_rgb(255,114,92))'                   #< нет
 
-  # @mark начало первой строки
-  printf '\1%b\2 %b \1SGR(bold_on)\2' "${_bppp_cf_subdir}" ${icon}
+  # @mark Печать начало первой строки, иконка
+  printf '\1%b\2 %b \1%b\2' "${_bppp_cf_subdir}" "${icon}" 'SGR(bold_on)'
 
   local -r _columns=$((COLUMNS - 6))
   # распечатать текущий каталог/репозиторий, обрезав начало если не помещается
   # в одну строку
   ((${#_bppp_toplevel} > _columns)) && _bppp_toplevel="…${_bppp_toplevel: -$_columns:$_columns}"
-  printf ' \1%b%b%b\2\n' "set_link(file://${HOSTNAME}${_bppp_toplevel}, ${_bppp_toplevel})" '\033[K' 'SGR(reset_all)'
+
+  # @mark Печать первая строка, текущий каталог/репозиторий
+  printf ' \1%b%b%b\2\n' "set_link(file://${HOSTNAME}${_bppp_toplevel}, \\\2${_bppp_toplevel}\1)" '\033[K' 'SGR(reset_all)'
 
 
   # region FOR_DEBUG
@@ -338,18 +340,18 @@ function bppp_print_prompt() {
 
   # юзер
   if (("$EUID" == 0)); then
-    local -r _user_af='\1SGR(reset_bg, set_fg_rgb(255,29,140))\2' #< если root
+    local -r _user_af='SGR(reset_bg, set_fg_rgb(255,29,140))' #< если root
   else
-    local -r _user_af='\1SGR(reset_bg, set_fg_rgb(228,149,69))\2' #< если нет
+    local -r _user_af='SGR(reset_bg, set_fg_rgb(228,149,69))' #< если нет
   fi
-  printf '%b%s\1SGR(reset_all)\2@' "${_user_af}" "${USER}" #< разделитель
+  printf '\1%b\2%s\1%b\2@' "${_user_af}" "${USER}" 'SGR(reset_all)' #< разделитель
   # хост
   if [[ -n "${SSH_CLIENT}" ]] || [[ -n "${SSH_TTY}" ]] || [[ -n "${SSH_CONNECTION}" ]]; then
-    printf "\1SGR(reset_bg, set_fg_rgb(255,29,140))\2" #< если ssh
+    printf '\1%b\2' 'SGR(reset_bg, set_fg_rgb(255,29,140))' #< если ssh
   else
-    printf "\1SGR(reset_bg, set_fg_rgb(228,149,69))\2" #< если локальный
+    printf '\1%b\2' 'SGR(reset_bg, set_fg_rgb(228,149,69))' #< если локальный
   fi
-  printf '%s\1SGR(reset_all)\2 ' "${HOSTNAME}"
+  printf '%s\1%b\2 ' "${HOSTNAME}" 'SGR(reset_all)'
 
   # branch | subdir
 
@@ -362,20 +364,20 @@ function bppp_print_prompt() {
 
     # виделить подчеркиванием ветку с именем не main/master
     if [ "${_bppp_cur_brh}" = "master" ] || [ "${_bppp_cur_brh}" = "main" ]; then
-      printf '\1SGR(reset_bg, underline_on, set_underline_rgb(228,149,69))\2' #< main/master
+      printf '\1%b\2' 'SGR(reset_bg, underline_on, set_underline_rgb(228,149,69))' #< main/master
     else
-      printf '\1SGR(reset_bg, underline_on, set_underline_rgb(255,26,241))\2' #< не main/master
+      printf '\1%b\2' 'SGR(reset_bg, underline_on, set_underline_rgb(255,26,241))' #< не main/master
     fi
 
     # виделить цветом если в вветке есть не сохраненные изменения
     if [ "$(git status --porcelain 2>/dev/null | wc -l)" = "0" ]; then
-      printf '\1SGR(set_fg_rgb(228,149,69))\2' #< clean
+      printf '\1%b\2' 'SGR(set_fg_rgb(228,149,69))' #< state clean
     else
-      printf '\1SGR(set_fg_rgb(74,210,233))\2' #< dirty
+      printf '\1%b\2' 'SGR(set_fg_rgb(74,210,233))' #< state dirty
     fi
 
     # печатаем имя ветки
-    printf "%s\1SGR(reset_all)\2" "${_bppp_cur_brh}"
+    printf '%s\1%b\2' "${_bppp_cur_brh}" 'SGR(reset_all)'
     # shellcheck disable=2155
     local _stage_count="$(git stash list 2>/dev/null | wc -l)"
     if [[ "${_stage_count}" != "0" ]]; then
@@ -394,11 +396,9 @@ function bppp_print_prompt() {
     fi
 
     printf ' \1%b%b\2\1%b\2 ' "${_bppp_cf_subdir}" "set_link(file://${HOSTNAME}${PWD}, \\\2${_bppp_cur_subdir}\1)" 'SGR(reset_all)'
-    # printf '== %q' "$AAA"
-
   fi
 
-  printf '%b❯\1%b%b%b\2 ' "${_user_af}" 'SGR(reset_all)' '\033[J' 'SGR(bold_on)'
+  printf '\1%b\2❯\1%b%b%b\2 ' "${_user_af}" 'SGR(reset_all)' '\033[J' 'SGR(bold_on)'
 
   #@todo: очистить окно терминала после изменения размеров
 }
