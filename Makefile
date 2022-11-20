@@ -8,13 +8,17 @@ all: ~/.profile \
      ~/.bash_ppp_command \
      ~/.bash_aliases \
      ~/.inputrc \
-     ~/.local/share/mc/bashrc
+     ~/.local/share/mc/bashrc \
+     ~/.config/gtk-3.0/gtk.css
 
 
 ~/.inputrc: ./inputrc
 	cp $< $@
 
 ~/.local/share/mc/bashrc: ./mc_bashrc
+	cp $< $@
+
+~/.config/gtk-3.0/gtk.css: gtk.css
 	cp $< $@
 
 ~/.bash_ppp_command: ./bash_ppp_command ./ansi_sequences.m4
@@ -32,6 +36,7 @@ clean:
 	rm -rf ~/.bash_ppp_command
 	rm -rf ~/.bash_aliases
 	rm -rf ~/.local/share/mc/bashrc
+	rm -rf ~/.config/gtk-3.0/gtk.css
 
 
 

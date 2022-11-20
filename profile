@@ -14,10 +14,12 @@
 if [ -n "$BASH_VERSION" ]; then
   # include .bashrc if it exists
   if [ -f "$HOME/.bashrc" ]; then
+    # shellcheck disable=SC1091
     . "$HOME/.bashrc"
   fi
 fi
 
+## PATH
 # set PATH so it includes user's private bin if it exists
 if [ -d "$HOME/.local/bin" ]; then
   PATH="$HOME/.local/bin:$PATH"
@@ -27,6 +29,15 @@ if [ -d "$HOME/.local/android_sdk/platform-tools" ]; then
   PATH="$HOME/.local/android_sdk/platform-tools:$PATH"
 fi
 
+## CDPATH
+# shellcheck disable=SC2016
+CDPATH='.:$HOME'
+if [ -d "$HOME/Документы/Projects" ]; then
+  CDPATH="${CDPATH}:$HOME/Документы/Projects"
+fi
+export CDPATH
+
+## TMPDIR
 # если доступна директория XDG_RUNTIME_DIR создать там директорию для
 # временных файлов
 if [ -d "${XDG_RUNTIME_DIR}" ]; then
@@ -34,9 +45,10 @@ if [ -d "${XDG_RUNTIME_DIR}" ]; then
   TMPDIR="${XDG_RUNTIME_DIR}/temp"
 fi
 
+## VISUAL
 # визуальный редактор по умолчанию
 # shellcheck disable=SC2034
-VISUAL="code --new-window --wait"
+VISUAL='code --new-window --wait'
 
 # #так НЕлюзя:
 # export VISUAL
