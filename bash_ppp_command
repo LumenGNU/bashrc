@@ -15,10 +15,9 @@
 # Требуются дополнительные пакеты:
 #   - fonts-powerline
 #   - fonts-font-awesome
+#
+# GTK_DEBUG=interactive  gnome-terminal --disable-factory
 # endregion
-
-
-
 
 # region FOR_DEBUG
 # declare -r LOGFILE=/run/user/1000/bppp.log
@@ -243,7 +242,7 @@ function bppp_postcommand {
   else
     # если нет команды (ентер в пустой строке|C-c)
     # @fixme: некрасиво получается
-    # printf '\e[2A' 
+    # printf '\e[2A'
     # #< перед рисованием строки-приглашения сдвинутся вверх 2строки
     # printf '\e[0J'
     :
@@ -280,6 +279,32 @@ function bppp_print_precommand {
 # endregion
 
 # region function bppp_print_prompt
+
+# +------+ STL_ICON_NORMAL
+# |      - STL_ICON_SLINK
+# |   +--+ STL_PROJECT_NORMAL
+# |   |  - STL_PROJECT_NOWRITE
+# v   v
+# +---+--------------------------------------------------------------------+
+# |ico|  project_path                                                      |
+# +----+-+----+-+---------+-+------+-+-+-----------------------------------+
+# |user|@|host| |branch{0}| |subdir| |>|
+# +----+ +----+ +---------+ +------+ +-+ -----------
+# ^      ^      ^           ^        ^   ^
+# |      |      |           |        |   +-- STL_PROMPT
+# |      |      |           |        +-----+ STL_INVITE_NORMAL
+# |      |      |           |              - STL_INVITE_ALERT
+# |      |      |           +--------------+ STL_SUBDIR_NORMAL
+# |      |      |                          - STL_SUBDIR_NOWRITE
+# |      |      +--------------------------+ STL_BRANCH_MAIN
+# |      |      |                          - STL_BRANCH_NOMAIN
+# |      |      +--------------------------+ STL_BRANCH_CLEAN
+# |      |                                 - STL_BRANCH_DIRTY
+# |      +---------------------------------+ STL_HOST_NORML
+# |                                        - STL_HOST_ALERT
+# +----------------------------------------+ STL_USER_NORMAL
+#                                          - STL_USER_ALERT
+#
 function bppp_print_prompt() {
 
   # получить путь к корню репозитория, если мы в репозитории,
@@ -287,7 +312,7 @@ function bppp_print_prompt() {
   # проверка того что мы внутри репозитория (в рабочей папке репозитория)
   if git rev-parse --is-inside-work-tree &>/dev/null; then
     local -r _is_git_flag='yes'
-    local icon='\uf1d2'  #'\uf1d2' #'\uf841' #'\uf121' #< git репозиторий
+    local icon='\uf1d2' #'\uf1d2' #'\uf841' #'\uf121' #< git репозиторий
     # shellcheck disable=SC2155
     local _bppp_toplevel="$(cd "$(git rev-parse --show-cdup 2>/dev/null)." && pwd)" # так надо если каталог символ. ссылка
   else
@@ -306,19 +331,23 @@ function bppp_print_prompt() {
   # endregion
 
   if [[ "${PWD}" = "$(pwd -P)" ]]; then
-    printf '\1%b\2' 'SGR(reset_all, set_bg_rgb(21,28,33))' # physical directory
+    printf '\1%b\2' 'STL_ICON_NORMAL' # physical directory
   else
-    printf '\1%b\2' 'SGR(reset_all, set_bg_rgb(26,21,33))' # directory with symbolic links
+    printf '\1%b\2' 'STL_ICON_SLINK' # directory with symbolic links
   fi
 
   # цвет для текущего текста каталог/репозиторий, зависит от того есть ли
   # разрешение на запись в этот каталог/репозиторий
-  {
-    [[ -w "${PWD}" ]] && local -r _bppp_cf_subdir='SGR(set_fg_rgb(255,209,51))' #< есть
-  } || local -r _bppp_cf_subdir='SGR(set_fg_rgb(255,114,92))'                   #< нет
+  if [[ -w "${PWD}" ]]; then
+    local -r _bppp_cf_prjdir='STL_PROJECT_NORMAL' #< есть
+    local -r _bppp_cf_subdir='STL_SUBDIR_NORMAL'  #< есть
+  else
+    local -r _bppp_cf_prjdir='STL_PROJECT_NOWRITE' #< нет
+    local -r _bppp_cf_subdir='STL_SUBDIR_NOWRITE'  #< нет
+  fi
 
   # @mark Печать начало первой строки, иконка
-  printf '\1%b\2 %b \1%b\2' "${_bppp_cf_subdir}" "${icon}" 'SGR(bold_on)'
+  printf ' %b \1%b\2' "${icon}" "${_bppp_cf_prjdir}"
 
   local -r _columns=$((COLUMNS - 6))
   # распечатать текущий каталог/репозиторий, обрезав начало если не помещается
@@ -327,7 +356,6 @@ function bppp_print_prompt() {
 
   # @mark Печать первая строка, текущий каталог/репозиторий
   printf ' \1%b%b%b\2\n' "set_link(file://${HOSTNAME}${_bppp_toplevel}, \\\2${_bppp_toplevel}\1)" '\033[K' 'SGR(reset_all)'
-
 
   # region FOR_DEBUG
   # {
@@ -340,16 +368,16 @@ function bppp_print_prompt() {
 
   # юзер
   if (("$EUID" == 0)); then
-    local -r _user_af='SGR(reset_bg, set_fg_rgb(255,29,140))' #< если root
+    local -r _user_af='STL_USER_ALERT' #< если root
   else
-    local -r _user_af='SGR(reset_bg, set_fg_rgb(228,149,69))' #< если нет
+    local -r _user_af='STL_USER_NORMAL' #< если нет
   fi
-  printf '\1%b\2%s\1%b\2@' "${_user_af}" "${USER}" 'SGR(reset_all)' #< разделитель
+  printf '\1%b\2%s\1%b\2@\1%b\2' "${_user_af}" "${USER}" 'STL_PROMPT' 'SGR(reset_all)' #< разделитель
   # хост
   if [[ -n "${SSH_CLIENT}" ]] || [[ -n "${SSH_TTY}" ]] || [[ -n "${SSH_CONNECTION}" ]]; then
-    printf '\1%b\2' 'SGR(reset_bg, set_fg_rgb(255,29,140))' #< если ssh
+    printf '\1%b\2' 'STL_HOST_ALERT' #< если ssh
   else
-    printf '\1%b\2' 'SGR(reset_bg, set_fg_rgb(228,149,69))' #< если локальный
+    printf '\1%b\2' 'STL_HOST_NORML' #< если локальный
   fi
   printf '%s\1%b\2 ' "${HOSTNAME}" 'SGR(reset_all)'
 
@@ -364,16 +392,16 @@ function bppp_print_prompt() {
 
     # виделить подчеркиванием ветку с именем не main/master
     if [ "${_bppp_cur_brh}" = "master" ] || [ "${_bppp_cur_brh}" = "main" ]; then
-      printf '\1%b\2' 'SGR(reset_bg, underline_on, set_underline_rgb(228,149,69))' #< main/master
+      printf '\1%b\2' 'STL_BRANCH_MAIN' #< main/master
     else
-      printf '\1%b\2' 'SGR(reset_bg, underline_on, set_underline_rgb(255,26,241))' #< не main/master
+      printf '\1%b\2' 'STL_BRANCH_NOMAIN' #< не main/master
     fi
 
     # виделить цветом если в вветке есть не сохраненные изменения
     if [ "$(git status --porcelain 2>/dev/null | wc -l)" = "0" ]; then
-      printf '\1%b\2' 'SGR(set_fg_rgb(228,149,69))' #< state clean
+      printf '\1%b\2' 'STL_BRANCH_CLEAN' #< state clean
     else
-      printf '\1%b\2' 'SGR(set_fg_rgb(74,210,233))' #< state dirty
+      printf '\1%b\2' 'STL_BRANCH_DIRTY' #< state dirty
     fi
 
     # печатаем имя ветки
@@ -398,7 +426,7 @@ function bppp_print_prompt() {
     printf ' \1%b%b\2\1%b\2 ' "${_bppp_cf_subdir}" "set_link(file://${HOSTNAME}${PWD}, \\\2${_bppp_cur_subdir}\1)" 'SGR(reset_all)'
   fi
 
-  printf '\1%b\2❯\1%b%b%b\2 ' "${_user_af}" 'SGR(reset_all)' '\033[J' 'SGR(bold_on)'
+  printf '\1%b\2%s \1%b\2' "${_user_af}" '❯' 'STL_PROMPT'
 
   #@todo: очистить окно терминала после изменения размеров
 }
