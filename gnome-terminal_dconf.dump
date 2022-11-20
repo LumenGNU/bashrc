@@ -1,30 +1,26 @@
 [/]
 default='d7e9f406-12ac-4112-a9a2-a847a9eec96f'
-list=['b1dcc9dd-5262-4d8d-a863-c897e6d979b9', 'd7e9f406-12ac-4112-a9a2-a847a9eec96f']
-
-[:b1dcc9dd-5262-4d8d-a863-c897e6d979b9]
-use-theme-transparency=false
 
 [:d7e9f406-12ac-4112-a9a2-a847a9eec96f]
-background-color='rgb(27,36,49)'
+background-color='rgb(38,38,38)'
 bold-color-same-as-fg=true
 bold-is-bright=false
-cell-height-scale=1.1000000000000001
+cell-height-scale=1.1500000000000001
 cell-width-scale=1.0
-cursor-background-color='rgb(255,255,228)'
+cursor-background-color='rgb(255,233,0)'
 cursor-blink-mode='on'
 cursor-colors-set=true
-cursor-foreground-color='rgb(255,255,228)'
+cursor-foreground-color='rgb(255,0,0)'
 cursor-shape='underline'
 default-size-columns=132
 default-size-rows=43
 font='DejaVu Sans Mono for Powerline 12'
-foreground-color='rgb(228,242,255)'
-highlight-background-color='rgb(255,167,86)'
+foreground-color='rgb(249,255,228)'
+highlight-background-color='rgb(11,80,133)'
 highlight-colors-set=true
-highlight-foreground-color='rgb(31,3,3)'
+highlight-foreground-color='rgb(247,247,234)'
 login-shell=false
-palette=['rgb(0,0,0)', 'rgb(205,0,0)', 'rgb(0,205,0)', 'rgb(205,205,0)', 'rgb(70,70,183)', 'rgb(205,0,205)', 'rgb(0,205,205)', 'rgb(250,235,215)', 'rgb(54,55,55)', 'rgb(254,135,103)', 'rgb(146,254,103)', 'rgb(254,211,103)', 'rgb(103,146,254)', 'rgb(211,103,254)', 'rgb(103,222,254)', 'rgb(253,253,254)']
+palette=['rgb(0,0,0)', 'rgb(255,98,164)', 'rgb(133,194,141)', 'rgb(255,214,179)', 'rgb(127,192,250)', 'rgb(184,183,249)', 'rgb(127,192,250)', 'rgb(224,224,224)', 'rgb(0,0,0)', 'rgb(254,135,103)', 'rgb(144,249,79)', 'rgb(246,254,174)', 'rgb(145,204,252)', 'rgb(184,183,249)', 'rgb(127,192,250)', 'rgb(224,224,224)']
 scrollbar-policy='never'
 use-system-font=false
 use-theme-colors=false
