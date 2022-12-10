@@ -145,11 +145,11 @@ define(`set_link', _join(`', _OSC(8), ;;$1\e\\$2, _OSC(8), ;;\e\\))
 
 #---
 ## == COLORS ==
-define(`H_NORMAL', `54,54,54')dnl
-define(`H_LINK', `54,54,89')dnl
-define(`CC_ALERT', `254,27,26')dnl
-define(`CC_NORMAL', `254,178,27')dnl
-define(`CC_PROMPT', `255,244,222')dnl
+define(`H_NORMAL', `35,36,40')dnl
+define(`H_LINK', `40,35,36')dnl
+define(`CC_NORMAL', `253,178,27')dnl
+define(`CC_ALERT', `253,81,27')dnl
+define(`CC_PROMPT', `227,241,242')dnl
 
 ## == STYLE ==
 define(`STL_ICON_NORMAL',        SGR(reset_all, set_bg_rgb(H_NORMAL)))dnl                             

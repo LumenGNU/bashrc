@@ -25,9 +25,7 @@ if [ -d "$HOME/.local/bin" ]; then
   PATH="$HOME/.local/bin:$PATH"
 fi
 
-if [ -d "$HOME/.local/android_sdk/platform-tools" ]; then
-  PATH="$HOME/.local/android_sdk/platform-tools:$PATH"
-fi
+PATH="./node_modules/.bin:$PATH"
 
 ## CDPATH
 # shellcheck disable=SC2016
@@ -54,3 +52,10 @@ VISUAL='code --new-window --wait'
 # export VISUAL
 # export TMPDIR
 # etc.
+
+if [ -d "$HOME/.local/share/android" ]; then
+  export ANDROID_HOME="$HOME/.local/share/android"
+  export ANDROID_SDK_ROOT="$ANDROID_HOME"
+  export ANDROID_AVD_HOME="$HOME/.local/share/android/android_avd"
+  PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/tools:$PATH"
+fi
