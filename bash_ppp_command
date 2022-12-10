@@ -13,6 +13,8 @@
 # @see: hterm Control Sequences <https://chromium.googlesource.com/apps/libapps/+/a5fb83c190aa9d74f4a9bca233dac6be2664e9e9/hterm/doc/ControlSequences.md>
 # @see: ANSI Escape Sequences <https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797>
 # Требуются дополнительные пакеты:
+
+#   - IBM-Plex-Mono <https://github.com/IBM/plex/releases>
 #   - fonts-powerline
 #   - fonts-font-awesome
 #
