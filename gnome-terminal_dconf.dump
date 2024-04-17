@@ -1,7 +1,6 @@
 [/]
 default='d7e9f406-12ac-4112-a9a2-a847a9eec96f'
 
-
 [:d7e9f406-12ac-4112-a9a2-a847a9eec96f]
 background-color='rgb(44,45,49)'
 bold-color-same-as-fg=true
@@ -15,13 +14,13 @@ cursor-foreground-color='rgb(255,0,0)'
 cursor-shape='underline'
 default-size-columns=132
 default-size-rows=37
-font='IBM Plex Mono Medium 12'
+font='IBM Plex Mono weight=453 12'
 foreground-color='rgb(241,247,247)'
 highlight-background-color='rgb(11,80,133)'
 highlight-colors-set=true
 highlight-foreground-color='rgb(247,247,234)'
 login-shell=false
-palette=['rgb(138,109,109)', 'rgb(215,164,178)', 'rgb(195,254,194)', 'rgb(242,254,194)', 'rgb(194,194,253)', 'rgb(233,194,254)', 'rgb(194,247,254)', 'rgb(250,235,215)', 'rgb(120,95,95)', 'rgb(230,176,190)', 'rgb(165,215,164)', 'rgb(211,221,169)', 'rgb(164,164,215)', 'rgb(203,169,221)', 'rgb(164,209,215)', 'rgb(255,255,255)']
+palette=['rgb(39,39,39)', 'rgb(245,104,83)', 'rgb(55,199,168)', 'rgb(245,197,92)', 'rgb(82,152,224)', 'rgb(165,142,224)', 'rgb(62,186,221)', 'rgb(238,228,218)', 'rgb(238,228,218)', 'rgb(228,82,64)', 'rgb(133,184,86)', 'rgb(239,180,100)', 'rgb(63,134,208)', 'rgb(144,120,208)', 'rgb(39,169,208)', 'rgb(238,228,218)']
 scrollbar-policy='never'
 use-system-font=false
 use-theme-colors=false
