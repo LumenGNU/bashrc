@@ -30,8 +30,8 @@ PATH="./node_modules/.bin:$PATH"
 ## CDPATH
 # shellcheck disable=SC2016
 CDPATH='.:$HOME'
-if [ -d "$HOME/Документы/Projects" ]; then
-  CDPATH="${CDPATH}:$HOME/Документы/Projects"
+if [ -d "$HOME/Projects" ]; then
+  CDPATH="${CDPATH}:$HOME/Projects"
 fi
 export CDPATH
 
@@ -46,7 +46,7 @@ fi
 ## VISUAL
 # визуальный редактор по умолчанию
 # shellcheck disable=SC2034
-VISUAL='code --new-window --wait'
+export VISUAL='code --new-window --wait'
 
 # #так НЕлюзя:
 # export VISUAL
@@ -57,5 +57,5 @@ if [ -d "$HOME/.local/share/android" ]; then
   export ANDROID_HOME="$HOME/.local/share/android"
   export ANDROID_SDK_ROOT="$ANDROID_HOME"
   export ANDROID_AVD_HOME="$HOME/.local/share/android/android_avd"
-  PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/tools:$PATH"
+  PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools:$PATH"
 fi

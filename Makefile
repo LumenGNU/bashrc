@@ -10,6 +10,7 @@ all: ~/.profile \
      ~/.inputrc \
      ~/.local/share/mc/bashrc \
      ~/.config/gtk-3.0/gtk.css
+	dconf load /org/gnome/terminal/legacy/profiles:/ < gnome-terminal_dconf.dump
 
 
 ~/.inputrc: ./inputrc
