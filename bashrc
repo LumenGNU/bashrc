@@ -44,7 +44,6 @@ shopt -s globstar
 
 
 
-
 # Alias definitions.
 # You may want to put all your additions into a separate file like
 # ~/.bash_aliases, instead of adding them here directly.
@@ -55,14 +54,23 @@ if [ -f ~/.bash_aliases ]; then
   source ~/.bash_aliases
 fi
 
+# АВТОЗАВЕРШЕНИЯ
 # enable programmable completion features (you don't need to enable
 # this, if it's already enabled in /etc/bash.bashrc and /etc/profile
 # sources /etc/bash.bashrc).
 if ! shopt -oq posix; then
   if [ -f /usr/share/bash-completion/bash_completion ]; then
-  source /usr/share/bash-completion/bash_completion
+    source /usr/share/bash-completion/bash_completion
   elif [ -f /etc/bash_completion ]; then
-  source /etc/bash_completion
+    source /etc/bash_completion
+  fi
+  # если есть папка с автозавершенями, то используем.
+  # будут подключены все файлы с расширением _autocomplete
+  if [ -d ~/.bash_completions ]; then
+    for f in ~/.bash_completions/*_autocomplete; do
+      # shellcheck disable=SC1090
+      source "$f"
+    done
   fi
 fi
 

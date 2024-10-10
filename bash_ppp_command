@@ -316,12 +316,12 @@ function bppp_print_prompt() {
     local -r _is_git_flag='yes'
     local icon='\uf1d2' #'\uf1d2' #'\uf841' #'\uf121' #< git репозиторий
     # shellcheck disable=SC2155
-    local _bppp_toplevel="$(cd "$(git rev-parse --show-cdup 2>/dev/null)." && pwd)" # так надо если каталог символ. ссылка
+    local _bppp_toplevel="$(cd "$(git rev-parse --show-cdup 2>/dev/null)." && pwd 2>/dev/null)" # так надо если каталог символ. ссылка
   else
     local -r _is_git_flag=''
     local icon='\uf07b' #< обычный каталог
     # shellcheck disable=SC2155
-    local _bppp_toplevel="$(pwd)"
+    local _bppp_toplevel="$(pwd 2>/dev/null)"
   fi
 
   # region FOR_DEBUG
@@ -332,7 +332,7 @@ function bppp_print_prompt() {
   # } >>$LOGFILE
   # endregion
 
-  if [[ "${PWD}" = "$(pwd -P)" ]]; then
+  if [[ "${PWD}" = "$(pwd -P 2>/dev/null)" ]]; then
     printf '\1%b\2' 'STL_ICON_NORMAL' # physical directory
   else
     printf '\1%b\2' 'STL_ICON_SLINK' # directory with symbolic links
