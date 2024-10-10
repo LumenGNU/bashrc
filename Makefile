@@ -25,6 +25,15 @@ all: ~/.profile \
 ~/.bash_ppp_command: ./bash_ppp_command ./ansi_sequences.m4
 	m4 ./ansi_sequences.m4 $(<) | ./pprint - | awk '{$$1=$$1};1' > $(@)
 
+
+## ~/.bashrc
+~/.bashrc: ./bashrc | mkdirs
+	./pprint ./bashrc > ~/.bashrc
+
+.PHONY: mkdirs
+mkdirs:
+	mkdir -p ~/.bash_completions
+
 ~/.%: ./%
 	./pprint $< > $@
 

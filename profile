@@ -14,7 +14,7 @@
 if [ -n "$BASH_VERSION" ]; then
   # include .bashrc if it exists
   if [ -f "$HOME/.bashrc" ]; then
-    # shellcheck disable=SC1091
+    # shellcheck source=/home/lumen/.bashrc
     . "$HOME/.bashrc"
   fi
 fi
@@ -45,8 +45,13 @@ fi
 
 ## VISUAL
 # визуальный редактор по умолчанию
-# shellcheck disable=SC2034
-export VISUAL='code --new-window --wait'
+if command -v codium >/dev/null 2>&1; then
+  export VISUAL='codium --new-window --wait'
+elif command -v code >/dev/null 2>&1; then
+  export VISUAL='code --new-window --wait'
+else
+  export VISUAL='gedit --new-window --wait'
+fi
 
 # #так НЕлюзя:
 # export VISUAL
