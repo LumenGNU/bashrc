@@ -27,3 +27,6 @@ alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo
 
 
 alias less='batcat'
+
+
+alias whatthecommit='curl "https://whatthecommit.com/index.txt" && echo " "'

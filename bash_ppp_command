@@ -1,56 +1,48 @@
 #!/bin/bash
 
-# region ДОКУМЕНТАЦИЯ
-# Полезные ссылки
-# @see: wikipedia: ANSI escape code <https://en.wikipedia.org/wiki/ANSI_escape_code>
-# @see: tput: Portable Terminal Control <https://www.gnu.org/software/termutils/manual/termutils-2.0/html_chapter/tput_1.html>
-# @see: Prompt customization <https://wiki.archlinux.org/title/Bash/Prompt_customization>
-# @see: Color Scheme for Gnome Terminal <https://gogh-co.github.io/Gogh/>
-# @see: TERMINFO (ru) <http://www.linuxlib.ru/manpages/TERMINFO.4.shtml>
-# @see: man terminfo <man:terminfo>
-# @see: Export Gnome Terminal Profile <https://gist.github.com/fdaciuk/9ec4d8afc32063a6f74a21f8308e3807>
-# @see: Hyperlinks in terminal https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
-# @see: hterm Control Sequences <https://chromium.googlesource.com/apps/libapps/+/a5fb83c190aa9d74f4a9bca233dac6be2664e9e9/hterm/doc/ControlSequences.md>
-# @see: ANSI Escape Sequences <https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797>
-# Требуются дополнительные пакеты:
-
-#   - IBM-Plex-Mono <https://github.com/IBM/plex/releases>
-#   - fonts-powerline
-#   - fonts-font-awesome
-#
-# GTK_DEBUG=interactive  gnome-terminal --disable-factory
-# endregion
-
-# region FOR_DEBUG
-# declare -r LOGFILE=/run/user/1000/bppp.log
-# {
-#   declare DEBUG_CC=0
-#   declare BPPP_XXX='- - -'
-#   echo ""
-#   echo -e "ppp_command loadeed . . . . . . . . . . . . . . . . . . . . . . . . .\n"
-#   # ( gnome-terminal -e "tail -f $LOGFILE" )&
-# } >>$LOGFILE
-# endregion
+command -vV git >/dev/null || exit 1
+command -vV cpp >/dev/null || exit 1
 
 declare -a BPPP_ERR_LINE=''
 declare -i BPPP_CCOUNTER=0
 
-# region function ubppp_print_nfo_line
+function bppp_truncate_path() {
+    local path="$1"
+    local max_len="$2"
+    if ((${#path} > max_len)); then
+        echo "…${path: -$max_len:$max_len}"
+    else
+        echo "$path"
+    fi
+}
+
+# bppp_trap_precommand() и bppp_postcommand() - Обработчики для отслеживания выполнения команд:
+#
+# Замеряют время выполнения
+# Сохраняют коды возврата
+# Обновляют заголовок окна терминала
+#
+# Интересные детали реализации:
+#
+# Использует ANSI escape sequences для форматирования
+# Поддерживает символические ссылки с особым индикатором
+# Имеет индикацию прав записи в директорию
+# Загружает цветовую схему из Xresources
+# Корректно обрабатывает длинные пути с усечением
+
+# Рисует информационную строку после выполнения команды:
+#
+# Показывает время выполнения (если >5с)
+# Отображает коды возврата команд
+# Использует цветовое кодирование для успешных/неуспешных результатов
+# region function bppp_print_nfo_line
 # функция рисует инф-строку после выполнения комманды. Типа такой:
 # ‾[1:23:57]‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾ 0  0  2‾
 #               отделяющая линия -^
 #  ^-- время выполнения команды (отображается если >5c)
 #                                        коды завершения комманд(ы)  -^
-## ubppp_print_nfo_line timestamp errCode1 errCode2 ... errCodeN
-function ubppp_print_nfo_line {
-
-  # region FOR_DEBUG
-  # {
-  #   echo -e "\n${DEBUG_CC}  +++ function ubppp_print_nfo_line +++"
-  #   echo "${DEBUG_CC}   ARGS = ${*}"
-  #   echo "${DEBUG_CC}   -  ARG$((++_anc)) = ${1}"
-  # } >>$LOGFILE
-  # endregion
+## bppp_print_nfo_line timestamp errCode1 errCode2 ... errCodeN
+function bppp_print_nfo_line() {
 
   printf '\E(B\E[00m' #\E[J' #< очистить экран от курсора до конца
 
@@ -74,29 +66,25 @@ function ubppp_print_nfo_line {
   for n in "$@"; do          #< перебор всех параметров (коды завершения)
     if [[ -n "${n}" ]]; then #< пропуск возможного пустого параметра
 
-      # region FOR_DEBUG
-      # {
-      #   echo "${DEBUG_CC}   -  ARG$((++_anc)) = ${n}"
-      # } >>$LOGFILE
-      # endregion
-
       # и составление одной раскрашеной строки
       if [[ "${n}" = "=" ]]; then
-        _err_line="${_err_line}SGR(set_fg_rgb(128,170,179), reset_bg) $n " #< маркер
+        _err_line+="\033[38;2;${BPPP_COLORS[1]}m\033[49m $n " #< маркер "="
       elif ((n == 0)); then
-        _err_line="${_err_line}SGR(set_fg_rgb(0,128,0), reset_bg) $n " #< нулевой код (fg св-зеленый, bg по умолчанию)
+        _err_line+="\033[38;2;${BPPP_COLORS[3]}m\033[49m $n " #< нулевой код (fg св-зеленый, bg по умолчанию)
       else
-        _err_line="${_err_line}SGR(set_fg_rgb(255,105,51), reset_bg) $n " #< не нулевой код (fg св-красный, bg по умолчанию)
+        _err_line+="\033[38;2;${BPPP_COLORS[4]}m\033[49m $n " #< не нулевой код (fg св-красный, bg по умолчанию)
       fi
-      ((_padding = _padding + 2))
+      ((_padding += 2))
     fi
   done
 
   printf '\n'
-  # # серый цвет----v + Overlined
-  printf '%b %s' 'SGR(set_fg_rgb(76,85,101), overline_on)' "${_timestamp}"
-  printf '%*s' $((COLUMNS - 1 - _err_line_len - _padding)) ' '
-  printf '%b%b %b' "${_err_line}" 'SGR(set_fg_rgb(76,85,101), overline_on)' 'SGR(reset_all)'
+  # # серый цвет----v + Overlined                                         #< печатает ....
+  printf -v __line '%b%*s' "\033[38;2;${BPPP_COLORS[1]}m\033[49m" "${COLUMNS:-$(tput cols)}" ' ' && printf '%b' "${__line// /_}\033[0m"
+  unset __line
+  printf '%b %s' "\033[38;2;${BPPP_COLORS[1]}m\033[49m" "${_timestamp}" #< таймстамп или ничего (смотри выше)
+  printf '%*s' $((COLUMNS - 1 - _err_line_len - _padding)) ' '          #< раскривушку из пробелов
+  printf '%b%b' "${_err_line}" "\033[0m"                                # код(а) завершения
   printf '\n\n'
 }
 # endregion
@@ -107,87 +95,31 @@ function ubppp_print_nfo_line {
 # - trap 'bppp_trap_precommand' DEBUG
 # - bppp_postcommand
 #
-function bppp_trap_precommand {
+function bppp_trap_precommand() {
   # shellcheck disable=SC2206
   local -ar _err_status=(${PIPESTATUS[*]})
 
   trap - DEBUG # @todo: может и не нада, но и не мешает
 
-  # region FOR_DEBUG
-  # {
-  #   echo -e "\n${DEBUG_CC} ++ function bppp_trap_precommand ++"
-  #   echo "${DEBUG_CC}  BPPP_XXX      = ${BPPP_XXX}"
-  #   echo "${DEBUG_CC}  BASH_SUBSHELL = ${BASH_SUBSHELL}"
-  #   echo "${DEBUG_CC}  BASH_COMMAND  = ${BASH_COMMAND}"
-  #   echo "${DEBUG_CC}  BPPP_CCOUNTER = ${BPPP_CCOUNTER}"
-  # } >>$LOGFILE
-  # endregion
-
-  [[ "${BASH_COMMAND}" == "bppp_postcommand" ]] && {
-
-    # region FOR_DEBUG
-    # {
-    #   ((BPPP_CCOUNTER > 0)) && {
-    #     echo "${DEBUG_CC}  * PRERUN bppp_postcommand:"
-    #     echo "${DEBUG_CC}    ## ВСЕ КОМАНДЫ ВЫПОЛНЕНЫ ##"
-    #     echo "${DEBUG_CC}    ## подготовка к вызову bppp_postcommand ##"
-    #     echo "${DEBUG_CC}    BPPP_CCOUNTER = ${BPPP_CCOUNTER}"
-    #     echo "${DEBUG_CC}    BPPP_ERR_LINE = ${#BPPP_ERR_LINE[@]}: ${BPPP_ERR_LINE[*]}"
-    #     echo "${DEBUG_CC}    SECONDS       = ${SECONDS}"
-    #   } >>$LOGFILE
-    # }
-    # endregion
-
+  case "${BASH_COMMAND}" in
+  "bppp_postcommand")
     return
-  }
-  [[ "${BASH_COMMAND}" == "trap 'bppp_trap_precommand' DEBUG" ]] && { # все команды выполнены
+    ;;
+  "trap 'bppp_trap_precommand' DEBUG")
     # shellcheck disable=SC2206
     BPPP_ERR_LINE=(${_err_status[*]}) #запомнить кооды завершений
-
-    # region FOR_DEBUG
-    # {
-    #   echo "${DEBUG_CC}  * PRERUN trap 'bppp_trap_precommand' DEBUG:"
-    #   echo "${DEBUG_CC}    nothing return"
-    # } >>$LOGFILE
-    # endregion
-
     return
-  }
+    ;;
+  esac
 
   # @todo: if BASH_COMMAND == sudo после нарисовать еще один бордер
 
-  # region FOR_DEBUG
-  # {
-  #   echo "${DEBUG_CC}  ## меняется заголовок на: ##"
-  #   echo "${DEBUG_CC}     ${debian_chroot:+($debian_chroot)}${USER}@${HOSTNAME}> ${BASH_COMMAND:0:25}"
-  # } >>$LOGFILE
-  # endregion
-
   # поменять заголовок окна на текущую команду
-  printf 'set_title(%s)' "${debian_chroot:+($debian_chroot)}${USER}@${HOSTNAME}> ${BASH_COMMAND:0:25}"
+  printf '\033]0;%s\a' "${debian_chroot:+($debian_chroot)}${SSH_CONNECTION:+SSH:}${USER}@${HOSTNAME}> ${BASH_COMMAND:0:25}"
 
   # обнулить счетчик времени
-  ((BPPP_CCOUNTER == 0)) && {
-
-    # region FOR_DEBUG
-    # {
-    #   echo "${DEBUG_CC}  ## первая команда, сброс счетчика SECONDS ##"
-    #   echo "${DEBUG_CC}     SECONDS = ${SECONDS} -> 0"
-    # } >>$LOGFILE
-    # endregion
-
-    SECONDS=0
-  }
-
+  ((BPPP_CCOUNTER == 0)) && SECONDS=0
   ((++BPPP_CCOUNTER))
-
-  # region FOR_DEBUG
-  # {
-  #   echo "${DEBUG_CC}  ## приращение счетчика команд BPPP_CCOUNTER ##"
-  #   echo "${DEBUG_CC}     ++BPPP_CCOUNTER = ${BPPP_CCOUNTER}"
-  # } >>$LOGFILE
-  # endregion
-
 }
 # endregion
 
@@ -195,26 +127,10 @@ function bppp_trap_precommand {
 # Автоматически выполняется после выполнения всех команд в списке/цепочке
 # Использует глобальные переменные: BPPP_ERR_LINE
 #                                   BPPP_CCOUNTER
-function bppp_postcommand {
-
-  # region FOR_DEBUG
-  # {
-  #   echo -e "\n${DEBUG_CC} ++ function bppp_postcommand ++"
-  #   echo "${DEBUG_CC}  BPPP_CCOUNTER = ${BPPP_CCOUNTER}"
-  #   echo "${DEBUG_CC}  BPPP_ERR_LINE = ${#BPPP_ERR_LINE[@]}: ${BPPP_ERR_LINE[*]}"
-  #   echo "${DEBUG_CC}  SECONDS = ${SECONDS}"
-  # } >>$LOGFILE
-  # endregion
-
-  # region FOR_DEBUG
-  # {
-  #   echo "${DEBUG_CC}  ## сбросить заголовок окна: ##"
-  #   echo "${DEBUG_CC}     ${debian_chroot:+($debian_chroot)}${USER}@${HOSTNAME}"
-  # } >>$LOGFILE
-  # endregion
+function bppp_postcommand() {
 
   # сбросить заголовок окна
-  printf 'set_title(%s)' "${debian_chroot:+($debian_chroot)}${USER}@${HOSTNAME}"
+  printf '\033]0;%s\a' "${debian_chroot:+($debian_chroot)}${SSH_CONNECTION:+SSH:}${USER}@${HOSTNAME}"
 
   if ((BPPP_CCOUNTER > 0)); then
 
@@ -222,23 +138,9 @@ function bppp_postcommand {
     # если выполнено несколько конвееро проинформировать пользователя
     { ((BPPP_CCOUNTER > ${#BPPP_ERR_LINE[@]})) && local -r _mark='= '; } || local -r _mark=''
 
-    # region FOR_DEBUG
-    # {
-    #   echo "${DEBUG_CC}  ## вызов ubppp_print_nfo_line ##"
-    #   echo "${DEBUG_CC}     => ${SECONDS} ${_mark} ${BPPP_ERR_LINE[*]}"
-    # } >>$LOGFILE
-    # endregion
-
     # shellcheck disable=SC2086,SC2048
-    ubppp_print_nfo_line "${SECONDS}" ${_mark} ${BPPP_ERR_LINE[*]} #< нарисовать инфо-строку
+    bppp_print_nfo_line "${SECONDS}" ${_mark} ${BPPP_ERR_LINE[*]} #< нарисовать инфо-строку
     BPPP_ERR_LINE=('')
-
-    # region FOR_DEBUG
-    # {
-    #   echo "${DEBUG_CC}  ## сброс счетчика BPPP_CCOUNTER ##"
-    #   echo "${DEBUG_CC}     BPPP_CCOUNTER = ${BPPP_CCOUNTER} -> 0"
-    # } >>$LOGFILE
-    # endregion
 
     BPPP_CCOUNTER=0 # сбросить счетчик комманд
   else
@@ -250,10 +152,6 @@ function bppp_postcommand {
     :
   fi
 
-  # region FOR_DEBUG
-  #echo "${DEBUG_CC}   ++DEBUG_CC" >>$LOGFILE
-  ((++DEBUG_CC))
-  # endregion
 }
 # endregion
 
@@ -261,19 +159,11 @@ function bppp_postcommand {
 # Рисует линию разделитель между вводом в командной строке и выводом команды.
 # Эта ф-ция вызывается bash`ем в подоболочке, поэтому присвение переменным
 # не имеет эфекта.
-function bppp_print_precommand {
-
-  # region FOR_DEBUG
-  # {
-  #   echo -e "\n${DEBUG_CC} ++ function bppp_print_precommand ++"
-  #   echo "${DEBUG_CC}  BASH_SUBSHELL = ${BASH_SUBSHELL}"
-  #   echo "${DEBUG_CC}  ## рисуется линия разделитель ##"
-  #   BPPP_XXX='X X X'
-  # } >>$LOGFILE
-  # endregion
+function bppp_print_precommand() {
 
   # линия разделитель между командой и ее выводом
-  printf '%b%*s%b\n' 'SGR(reset_bg, set_fg_rgb(76,85,101), strike_on)' $((COLUMNS)) ' ' 'SGR(reset_all)'
+  printf -v __line '%b%*s\n' "\033[38;2;${BPPP_COLORS[1]}m\033[49m" "${COLUMNS:-$(tput cols)}" ' ' && printf '%b' "${__line// /-}\033[0m"
+  unset __line
   printf '\E[J' #< очистить экран от курсора до конца
 
   #@note: поменять заголовок окна на текущую команду тут не получится
@@ -281,133 +171,91 @@ function bppp_print_precommand {
 # endregion
 
 # region function bppp_print_prompt
-
-# +------+ STL_ICON_NORMAL
-# |      - STL_ICON_SLINK
-# |   +--+ STL_PROJECT_NORMAL
-# |   |  - STL_PROJECT_NOWRITE
-# v   v
-# +---+--------------------------------------------------------------------+
-# |ico|  project_path                                                      |
-# +----+-+----+-+---------+-+------+-+-+-----------------------------------+
-# |user|@|host| |branch{0}| |subdir| |>|
-# +----+ +----+ +---------+ +------+ +-+ -----------
-# ^      ^      ^           ^        ^   ^
-# |      |      |           |        |   +-- STL_PROMPT
-# |      |      |           |        +-----+ STL_INVITE_NORMAL
-# |      |      |           |              - STL_INVITE_ALERT
-# |      |      |           +--------------+ STL_SUBDIR_NORMAL
-# |      |      |                          - STL_SUBDIR_NOWRITE
-# |      |      +--------------------------+ STL_BRANCH_MAIN
-# |      |      |                          - STL_BRANCH_NOMAIN
-# |      |      +--------------------------+ STL_BRANCH_CLEAN
-# |      |                                 - STL_BRANCH_DIRTY
-# |      +---------------------------------+ STL_HOST_NORML
-# |                                        - STL_HOST_ALERT
-# +----------------------------------------+ STL_USER_NORMAL
-#                                          - STL_USER_ALERT
 #
+# Основная функция форматирования промпта:
+#
+# Показывает текущий каталог/репозиторий ~~с индикаторами (d/r для директории/репозитория)~~
+# Отображает имя пользователя и хост
+# Для git репозиториев показывает текущую ветку и статус изменений
+# Подсвечивает ветки отличные от main/master
+# Показывает количество stash записей
 function bppp_print_prompt() {
-
   # получить путь к корню репозитория, если мы в репозитории,
   # иначе текущая дериктория
   # проверка того что мы внутри репозитория (в рабочей папке репозитория)
   if git rev-parse --is-inside-work-tree &>/dev/null; then
-    local -r _is_git_flag='yes'
-    local icon='\uf1d2' #'\uf1d2' #'\uf841' #'\uf121' #< git репозиторий
+    # текущий путь внутри репозитория
+    local -r is_git=1
     # shellcheck disable=SC2155
     local _bppp_toplevel="$(cd "$(git rev-parse --show-cdup 2>/dev/null)." && pwd 2>/dev/null)" # так надо если каталог символ. ссылка
   else
-    local -r _is_git_flag=''
-    local icon='\uf07b' #< обычный каталог
+    # просто каталог
     # shellcheck disable=SC2155
     local _bppp_toplevel="$(pwd 2>/dev/null)"
   fi
 
-  # region FOR_DEBUG
-  # {
-  #   echo -e "\n${DEBUG_CC} ++ function bppp_print_prompt ++"
-  #   echo "${DEBUG_CC}  _is_git_flag   = ${_is_git_flag}"
-  #   echo "${DEBUG_CC}  _bppp_toplevel = ${_bppp_toplevel}"
-  # } >>$LOGFILE
-  # endregion
+  printf '\1%b\2' "\033[0;48;2;${BPPP_COLORS[0]}m"
 
-  if [[ "${PWD}" = "$(pwd -P 2>/dev/null)" ]]; then
-    printf '\1%b\2' 'STL_ICON_NORMAL' # physical directory
-  else
-    printf '\1%b\2' 'STL_ICON_SLINK' # directory with symbolic links
-  fi
+  # if [[ "${PWD}" = "$(pwd -P 2>/dev/null)" ]]; then # физическая директория
+  #   :
+  # else # символьная директория
+  #   :
+  # fi
 
   # цвет для текущего текста каталог/репозиторий, зависит от того есть ли
   # разрешение на запись в этот каталог/репозиторий
   if [[ -w "${PWD}" ]]; then
-    local -r _bppp_cf_prjdir='STL_PROJECT_NORMAL' #< есть
-    local -r _bppp_cf_subdir='STL_SUBDIR_NORMAL'  #< есть
+    local -r _bppp_cf_prjdir="\033[38;2;${BPPP_COLORS[5]};1m" #< есть
+    local -r _bppp_cf_subdir="\033[38;2;${BPPP_COLORS[5]}m"   #< есть
   else
-    local -r _bppp_cf_prjdir='STL_PROJECT_NOWRITE' #< нет
-    local -r _bppp_cf_subdir='STL_SUBDIR_NOWRITE'  #< нет
+    local -r _bppp_cf_prjdir="\033[38;2;${BPPP_COLORS[6]};1m" #< нет
+    local -r _bppp_cf_subdir="\033[38;2;${BPPP_COLORS[6]}m"   #< нет
   fi
 
-  # @mark Печать начало первой строки, иконка
-  printf ' %b \1%b\2' "${icon}" "${_bppp_cf_prjdir}"
+  # @mark Печать начало первой строки
+  printf '\1%b\2' "${_bppp_cf_prjdir}"
 
   local -r _columns=$((COLUMNS - 6))
   # распечатать текущий каталог/репозиторий, обрезав начало если не помещается
   # в одну строку
-  ((${#_bppp_toplevel} > _columns)) && _bppp_toplevel="…${_bppp_toplevel: -$_columns:$_columns}"
-
+  _bppp_toplevel="$(bppp_truncate_path "$_bppp_toplevel" "$_columns")"
+  
   # @mark Печать первая строка, текущий каталог/репозиторий
-  printf ' \1%b%b%b\2\n' "set_link(file://${HOSTNAME}${_bppp_toplevel}, \\\2${_bppp_toplevel}\1)" '\033[K' 'SGR(reset_all)'
-
-  # region FOR_DEBUG
-  # {
-  #   echo "${DEBUG_CC}  _columns   = ${_columns}"
-  #   echo "${DEBUG_CC}  _bppp_toplevel = ${_bppp_toplevel}"
-  # } >>$LOGFILE
-  # endregion
+  printf '\1%b%b%b\2\n' "\033]8;;file://${HOSTNAME}${_bppp_toplevel}\e\\\\\2${_bppp_toplevel}\1\033]8;;\e\\" '\033[K' "\033[0m"
 
   # user@host
-
   # юзер
   if (("$EUID" == 0)); then
-    local -r _user_af='STL_USER_ALERT' #< если root
+    local -r _user_af="\033[49;38;2;${BPPP_COLORS[9]}m" #< если root
   else
-    local -r _user_af='STL_USER_NORMAL' #< если нет
+    local -r _user_af="\033[49;38;2;${BPPP_COLORS[8]}m" #< если нет
   fi
-  printf '\1%b\2%s\1%b\2@\1%b\2' "${_user_af}" "${USER}" 'STL_PROMPT' 'SGR(reset_all)' #< разделитель
+  printf '\1%b\2%s\1%b\2@' "${_user_af}" "${SSH_CONNECTION:+SSH:}${USER}" "\033[0;38;2;${BPPP_COLORS[8]}m" #"\033[0m" #< разделитель
   # хост
-  if [[ -n "${SSH_CLIENT}" ]] || [[ -n "${SSH_TTY}" ]] || [[ -n "${SSH_CONNECTION}" ]]; then
-    printf '\1%b\2' 'STL_HOST_ALERT' #< если ssh
-  else
-    printf '\1%b\2' 'STL_HOST_NORML' #< если локальный
-  fi
-  printf '%s\1%b\2 ' "${HOSTNAME}" 'SGR(reset_all)'
+  printf '%s\1%b\2 ' "${HOSTNAME}" "\033[0m"
 
   # branch | subdir
-
-  if [[ "${_is_git_flag}" == 'yes' ]]; then # git
+  if [[ ${is_git:-0} == 1 ]] && [[ -w "${PWD}" ]]; then # git и есть разрешение на запись
 
     # текущая ветка репозитория
     #  shellcheck disable=SC2155
     local _bppp_cur_brh="$(git branch --show-current 2>/dev/null)"
-    _bppp_cur_brh="${_bppp_cur_brh:-"***"}" # @fixme: точно нужно?
+    _bppp_cur_brh="${_bppp_cur_brh:-"*****"}" # @fixme: точно нужно? НУЖНО
 
     # виделить подчеркиванием ветку с именем не main/master
-    if [ "${_bppp_cur_brh}" = "master" ] || [ "${_bppp_cur_brh}" = "main" ]; then
-      printf '\1%b\2' 'STL_BRANCH_MAIN' #< main/master
-    else
-      printf '\1%b\2' 'STL_BRANCH_NOMAIN' #< не main/master
+    if [ "${_bppp_cur_brh}" != "master" ] && [ "${_bppp_cur_brh}" != "main" ]; then
+      printf '\1%b\2' "\033[49;4:1;58;2;${BPPP_COLORS[9]}m" #< не main/master
     fi
 
     # виделить цветом если в вветке есть не сохраненные изменения
     if [ "$(git status --porcelain 2>/dev/null | wc -l)" = "0" ]; then
-      printf '\1%b\2' 'STL_BRANCH_CLEAN' #< state clean
+      printf '\1%b\2' "\033[38;2;${BPPP_COLORS[8]}m" #< state clean
     else
-      printf '\1%b\2' 'STL_BRANCH_DIRTY' #< state dirty
+      printf '\1%b\2' "\033[38;2;${BPPP_COLORS[9]}m" #< state dirty
     fi
 
     # печатаем имя ветки
-    printf '%s\1%b\2' "${_bppp_cur_brh}" 'SGR(reset_all)'
+    printf '%s\1%b\2' "${_bppp_cur_brh}" "\033[0m"
     # shellcheck disable=2155
     local _stage_count="$(git stash list 2>/dev/null | wc -l)"
     if [[ "${_stage_count}" != "0" ]]; then
@@ -415,25 +263,19 @@ function bppp_print_prompt() {
     fi
 
     # текущий подкаталог текущего проекта(репозитория).
-    # shellcheck disable=SC2155
-    local _bppp_cur_subdir="$(git rev-parse --show-prefix 2>/dev/null)"
+    local -r _bppp_cur_subdir="./$(bppp_truncate_path "$(git rev-parse --show-prefix 2>/dev/null)" 25)"
 
-    if ((${#_bppp_cur_subdir} > 25)); then #< обрезать длинный путь до 25 символов
-      _bppp_cur_subdir="…${_bppp_cur_subdir: -25:25}"
-      _bppp_cur_subdir="./${_bppp_cur_subdir}"
-    else
-      _bppp_cur_subdir="./${_bppp_cur_subdir}"
-    fi
-
-    printf ' \1%b%b\2\1%b\2 ' "${_bppp_cf_subdir}" "set_link(file://${HOSTNAME}${PWD}, \\\2${_bppp_cur_subdir}\1)" 'SGR(reset_all)'
+    printf ' \1%b%b\2\1%b\2 ' "${_bppp_cf_subdir}" "\033]8;;file://${HOSTNAME}${PWD}\e\\\\\2${_bppp_cur_subdir}\1\033]8;;\e\\" "\033[0m"
   fi
 
-  printf '\1%b\2%s \1%b\2' "${_user_af}" '❯' 'STL_PROMPT'
+  printf '\1%b\2%s \1%b\2' "${_user_af}" '❯' "\033[0;1;38;2;${BPPP_COLORS[2]}m"
 
   #@todo: очистить окно терминала после изменения размеров
 }
+
 # endregion
 
+## == ENTRY POINT ==>
 # region Set PS1, PROMPT_COMMAND, terminal title etc.
 # ==============================================================================
 
@@ -443,24 +285,31 @@ if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
 fi
 
 # set a fancy prompt (non-color, unless we know we "want" color)
+
 case "$TERM" in
-xterm-color | *-256color) color_prompt=yes ;;
+*-color | *-256color | *-direct)
+  export COLORTERM=truecolor
+  ;;
 esac
 
-PROMPT_DIRTRIM=3 #< number of trailing directory components
-if [ "$color_prompt" = yes ]; then
-  if [[ "${COLORTERM}" = "truecolor" ]] && [[ "${TERM_PROGRAM}" != "vscode" ]]; then
-
+PROMPT_DIRTRIM=3                            #< number of trailing directory components
+if [[ "${COLORTERM}" = "truecolor" ]]; then # "цветной" терминал
+  if [[ "${TERM_PROGRAM}" != "vscode" ]]; then
+    # для всех кроме vscode
+    # загрузка цветовой темы для ppp. Смотри ppp.xresources
+    # @todo: клиетн должен иметь возможность передать цветовую тему
+    mapfile -t BPPP_COLORS < <(cpp -P ~/.Xresources.d/ppp.xresources | grep -F 'ppp_theme.Colors.color' | sort | cut -f2 | cut -d' ' -f2)
     PROMPT_COMMAND="trap 'bppp_trap_precommand' DEBUG; bppp_postcommand"
     # shellcheck disable=SC2034,SC2016
     PS0='$(bppp_print_precommand)'
     PS1='${debian_chroot:+($debian_chroot)}$(bppp_print_prompt)'
   else
-    PS1='\[SGR(reset_all, bold_on)\]\n${debian_chroot:+($debian_chroot)}\[SGR(set_fg_Green)\]\u@\h\[SGR(reset_all)\]:\[SGR(set_fg_Blue)\]\w ❯\[SGR(reset_all)\] '
+    # для vscode
+    PS1='\[\033[0;1m\]\n${debian_chroot:+($debian_chroot)}\[\033[32m\]\u@\h\[\033[0m\]:\[\033[34m\]\w ❯\[\033[0m\] '
   fi
 else
+  # для не цветных терминалов
   PS1='\n${debian_chroot:+($debian_chroot)}\u@\h:\w\ ❯ '
 fi
-unset color_prompt
 
 # endregion
