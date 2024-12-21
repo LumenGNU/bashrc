@@ -58,9 +58,9 @@ fi
 # export TMPDIR
 # etc.
 
-if [ -d "$HOME/.local/share/android" ]; then
-  export ANDROID_HOME="$HOME/.local/share/android"
-  export ANDROID_SDK_ROOT="$ANDROID_HOME"
-  export ANDROID_AVD_HOME="$HOME/.local/share/android/android_avd"
-  PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools:$PATH"
-fi
+#if [ -d "$HOME/.local/share/android" ]; then
+#  export ANDROID_HOME="$HOME/.local/share/android"
+#  export ANDROID_SDK_ROOT="$ANDROID_HOME"
+#  export ANDROID_AVD_HOME="$HOME/.local/share/android/android_avd"
+#  PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools:$PATH"
+#fi
