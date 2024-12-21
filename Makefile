@@ -10,8 +10,8 @@ all: ~/.profile \
      ~/.inputrc \
      ~/.local/share/mc/bashrc \
      ~/.config/gtk-3.0/gtk.css \
-	 ~/.Xresources.d/ppp.xresources
-	dconf load /org/gnome/terminal/legacy/profiles:/ < gnome-terminal_dconf.dump
+     ~/.Xresources.d/ppp.xresources
+
 
 
 ~/.inputrc: ./inputrc
@@ -41,7 +41,12 @@ all: ~/.profile \
 .PHONY: mkdirs
 mkdirs:
 	mkdir -p ~/.bash_completions
+	mkdir -p ~/.local/share/mc/
 	mkdir -p ~/.Xresources.d
+
+.PHONY: load_profile
+load_profile:
+	dconf load /org/gnome/terminal/legacy/profiles:/ < gnome-terminal_dconf.dump
 
 ~/.%: ./%
 	./pprint $< > $@

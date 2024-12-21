@@ -1,7 +1,7 @@
 #!/bin/bash
 
-command -vV git >/dev/null || exit 1
-command -vV cpp >/dev/null || exit 1
+command -v git >/dev/null || exit 1
+command -v cpp >/dev/null || exit 1
 
 declare -a BPPP_ERR_LINE=''
 declare -i BPPP_CCOUNTER=0
@@ -36,11 +36,11 @@ function bppp_truncate_path() {
 # Отображает коды возврата команд
 # Использует цветовое кодирование для успешных/неуспешных результатов
 # region function bppp_print_nfo_line
-# функция рисует инф-строку после выполнения комманды. Типа такой:
+# функция рисует инф-строку после выполнения команды. Типа такой:
 # ‾[1:23:57]‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾ 0  0  2‾
 #               отделяющая линия -^
 #  ^-- время выполнения команды (отображается если >5c)
-#                                        коды завершения комманд(ы)  -^
+#                                        коды завершения команд(ы)  -^
 ## bppp_print_nfo_line timestamp errCode1 errCode2 ... errCodeN
 function bppp_print_nfo_line() {
 
@@ -66,7 +66,7 @@ function bppp_print_nfo_line() {
   for n in "$@"; do          #< перебор всех параметров (коды завершения)
     if [[ -n "${n}" ]]; then #< пропуск возможного пустого параметра
 
-      # и составление одной раскрашеной строки
+      # и составление одной раскрашенной строки
       if [[ "${n}" = "=" ]]; then
         _err_line+="\033[38;2;${BPPP_COLORS[1]}m\033[49m $n " #< маркер "="
       elif ((n == 0)); then
@@ -80,9 +80,9 @@ function bppp_print_nfo_line() {
 
   printf '\n'
   # # серый цвет----v + Overlined                                         #< печатает ....
-  printf -v __line '%b%*s' "\033[38;2;${BPPP_COLORS[1]}m\033[49m" "${COLUMNS:-$(tput cols)}" ' ' && printf '%b' "${__line// /_}\033[0m"
-  unset __line
-  printf '%b %s' "\033[38;2;${BPPP_COLORS[1]}m\033[49m" "${_timestamp}" #< таймстамп или ничего (смотри выше)
+  # printf -v __line '%b%*s' "\033[38;2;${BPPP_COLORS[1]}m\033[49m" "${COLUMNS:-$(tput cols)}" ' ' && printf '%b' "${__line// /#}\033[0m"
+  # unset __line
+  printf '%b %s' "\033[53;38;2;${BPPP_COLORS[1]}m\033[49m" "${_timestamp}" #< таймстамп или ничего (смотри выше)
   printf '%*s' $((COLUMNS - 1 - _err_line_len - _padding)) ' '          #< раскривушку из пробелов
   printf '%b%b' "${_err_line}" "\033[0m"                                # код(а) завершения
   printf '\n\n'
@@ -90,8 +90,8 @@ function bppp_print_nfo_line() {
 # endregion
 
 # region function bppp_trap_precommand
-# Автоматически вызываетя перед выполнением каждой комманды в списке/цепочке
-# После всех введенных в к.с. комманд всегда будут выполнены две команды:
+# Автоматически вызывается перед выполнением каждой команды в списке/цепочке
+# После всех введенных в к.с. команд всегда будут выполнены две команды:
 # - trap 'bppp_trap_precommand' DEBUG
 # - bppp_postcommand
 #
@@ -107,7 +107,7 @@ function bppp_trap_precommand() {
     ;;
   "trap 'bppp_trap_precommand' DEBUG")
     # shellcheck disable=SC2206
-    BPPP_ERR_LINE=(${_err_status[*]}) #запомнить кооды завершений
+    BPPP_ERR_LINE=(${_err_status[*]}) #запомнить коды завершений
     return
     ;;
   esac
@@ -134,17 +134,17 @@ function bppp_postcommand() {
 
   if ((BPPP_CCOUNTER > 0)); then
 
-    # PIPESTATUS - содержит коды завершения только последнего конвеера,
-    # если выполнено несколько конвееро проинформировать пользователя
+    # PIPESTATUS - содержит коды завершения только последнего конвейера,
+    # если выполнено несколько конвейеров проинформировать пользователя
     { ((BPPP_CCOUNTER > ${#BPPP_ERR_LINE[@]})) && local -r _mark='= '; } || local -r _mark=''
 
     # shellcheck disable=SC2086,SC2048
     bppp_print_nfo_line "${SECONDS}" ${_mark} ${BPPP_ERR_LINE[*]} #< нарисовать инфо-строку
     BPPP_ERR_LINE=('')
 
-    BPPP_CCOUNTER=0 # сбросить счетчик комманд
+    BPPP_CCOUNTER=0 # сбросить счетчик команд
   else
-    # если нет команды (ентер в пустой строке|C-c)
+    # если нет команды (<enter> в пустой строке|C-c)
     # @fixme: некрасиво получается
     # printf '\e[2A'
     # #< перед рисованием строки-приглашения сдвинутся вверх 2строки
@@ -157,13 +157,12 @@ function bppp_postcommand() {
 
 # region function bppp_print_precommand
 # Рисует линию разделитель между вводом в командной строке и выводом команды.
-# Эта ф-ция вызывается bash`ем в подоболочке, поэтому присвение переменным
-# не имеет эфекта.
+# Эта ф-ция вызывается bash`ем в подоболочке, поэтому присвоение переменным
+# не имеет эффекта.
 function bppp_print_precommand() {
 
   # линия разделитель между командой и ее выводом
-  printf -v __line '%b%*s\n' "\033[38;2;${BPPP_COLORS[1]}m\033[49m" "${COLUMNS:-$(tput cols)}" ' ' && printf '%b' "${__line// /-}\033[0m"
-  unset __line
+  printf '%b%*s%b\n' "\033[53;38;2;${BPPP_COLORS[1]}m\033[49m" "$(( ${COLUMNS:-$(tput cols)} - 1 ))" ' ' "\033[0m" 
   printf '\E[J' #< очистить экран от курсора до конца
 
   #@note: поменять заголовок окна на текущую команду тут не получится
@@ -181,7 +180,7 @@ function bppp_print_precommand() {
 # Показывает количество stash записей
 function bppp_print_prompt() {
   # получить путь к корню репозитория, если мы в репозитории,
-  # иначе текущая дериктория
+  # иначе текущая директория
   # проверка того что мы внутри репозитория (в рабочей папке репозитория)
   if git rev-parse --is-inside-work-tree &>/dev/null; then
     # текущий путь внутри репозитория
@@ -242,12 +241,12 @@ function bppp_print_prompt() {
     local _bppp_cur_brh="$(git branch --show-current 2>/dev/null)"
     _bppp_cur_brh="${_bppp_cur_brh:-"*****"}" # @fixme: точно нужно? НУЖНО
 
-    # виделить подчеркиванием ветку с именем не main/master
+    # выделить подчеркиванием ветку с именем не main/master
     if [ "${_bppp_cur_brh}" != "master" ] && [ "${_bppp_cur_brh}" != "main" ]; then
       printf '\1%b\2' "\033[49;4:1;58;2;${BPPP_COLORS[9]}m" #< не main/master
     fi
 
-    # виделить цветом если в вветке есть не сохраненные изменения
+    # выделить цветом если в ветке есть не сохраненные изменения
     if [ "$(git status --porcelain 2>/dev/null | wc -l)" = "0" ]; then
       printf '\1%b\2' "\033[38;2;${BPPP_COLORS[8]}m" #< state clean
     else
@@ -268,7 +267,7 @@ function bppp_print_prompt() {
     printf ' \1%b%b\2\1%b\2 ' "${_bppp_cf_subdir}" "\033]8;;file://${HOSTNAME}${PWD}\e\\\\\2${_bppp_cur_subdir}\1\033]8;;\e\\" "\033[0m"
   fi
 
-  printf '\1%b\2%s \1%b\2' "${_user_af}" '❯' "\033[0;1;38;2;${BPPP_COLORS[2]}m"
+  printf '\1%b\2%s\1%b\2' "${_user_af}" '〉' "\033[0;1;38;2;${BPPP_COLORS[2]}m"
 
   #@todo: очистить окно терминала после изменения размеров
 }
@@ -294,7 +293,7 @@ esac
 
 PROMPT_DIRTRIM=3                            #< number of trailing directory components
 if [[ "${COLORTERM}" = "truecolor" ]]; then # "цветной" терминал
-  if [[ "${TERM_PROGRAM}" != "vscode" ]]; then
+  if [[ -n "$GNOME_TERMINAL_SCREEN" ]]; then
     # для всех кроме vscode
     # загрузка цветовой темы для ppp. Смотри ppp.xresources
     # @todo: клиетн должен иметь возможность передать цветовую тему
@@ -303,13 +302,14 @@ if [[ "${COLORTERM}" = "truecolor" ]]; then # "цветной" терминал
     # shellcheck disable=SC2034,SC2016
     PS0='$(bppp_print_precommand)'
     PS1='${debian_chroot:+($debian_chroot)}$(bppp_print_prompt)'
-  else
+  elif [[ "${TERM_PROGRAM}" == "vscode" ]]; then
     # для vscode
-    PS1='\[\033[0;1m\]\n${debian_chroot:+($debian_chroot)}\[\033[32m\]\u@\h\[\033[0m\]:\[\033[34m\]\w ❯\[\033[0m\] '
+    PS1='\[\033[0;1m\]\n${debian_chroot:+($debian_chroot)}\[\033[32m\]\u@\h\[\033[0m\]:\[\033[34m\]\w 〉\[\033[0m\]'
+  else
+    # все остальные
+    PS1='\n${debian_chroot:+($debian_chroot)}\u@\h:\w\ 〉'
   fi
-else
-  # для не цветных терминалов
-  PS1='\n${debian_chroot:+($debian_chroot)}\u@\h:\w\ ❯ '
+  
 fi
 
 # endregion

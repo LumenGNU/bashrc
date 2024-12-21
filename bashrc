@@ -67,16 +67,20 @@ if ! shopt -oq posix; then
   # если есть папка с автозавершенями, то используем.
   # будут подключены все файлы с расширением _autocomplete
   if [ -d ~/.bash_completions ]; then
-    for f in ~/.bash_completions/*_autocomplete; do
-      # shellcheck disable=SC1090
-      source "$f"
-    done
+     # compgen -G проверяет есть ли файлы по шаблону *_autocomplete
+   # возвращает 0 если файлы найдены, 1 если файлов нет
+   # > /dev/null отбрасывает вывод, оставляя только код возврата
+    if compgen -G ~/.bash_completions/*_autocomplete > /dev/null; then
+        for f in ~/.bash_completions/*_autocomplete; do
+            # shellcheck disable=SC1090
+            source "$f"
+        done
+    fi
   fi
 fi
 
-# shellcheck source=/home/lumen/.byobu/prompt
-[ -r ~/.byobu/prompt ] && source ~/.byobu/prompt   #byobu-prompt#
 
 # shellcheck source=bash_ppp_command
 source ~/.bash_ppp_command
+
 

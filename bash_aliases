@@ -26,7 +26,7 @@ alias l='ls -CF'
 alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
 
 
-alias less='batcat'
-
+command -v batcat >/dev/null && alias less='batcat'
+command -v codium >/dev/null && alias code='codium'
 
 alias whatthecommit='curl "https://whatthecommit.com/index.txt" && echo " "'
