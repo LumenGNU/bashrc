@@ -4,7 +4,7 @@
 # =============================
 # Префикс BPPP_ используется для предотвращения конфликтов имен в глобальном окружении bash
 
-declare -a BPPP_ERR_LINE=() # Массив для хранения кодов возврата команд в цепочке
+declare -a bppp_ERR_LINE=() # Массив для хранения кодов возврата команд в цепочке
 
 # @fixme: иследовать возможность использовать переменную bash LINENO
 declare -i BPPP_CCOUNTER=0  # Счетчик команд для корректной обработки цепочек команд
@@ -84,7 +84,7 @@ function bppp_print_nfo_line() {
     # @fixme: Проверить необходимость проверки пустых параметров. @closed
     # По текущей логике пустые параметры не должны появляться:
     # - SECONDS (встроенная переменная bash) всегда числовая
-    # - BPPP_ERR_LINE содержит только коды возврата
+    # - bppp_ERR_LINE содержит только коды возврата
     # - _mark либо "= " либо пропадает при подстановке
     # if [[ -n "${n}" ]]; then # пропуск возможного пустого параметра
 
@@ -117,33 +117,14 @@ function bppp_print_nfo_line() {
 # @todo: Добавить дополнительную визуальную разделительную линию для sudo команд:
 # 1. Установить флаг при обнаружении sudo в BASH_COMMAND
 # 2. В bppp_print_precommand использовать другой стиль линии если флаг установлен
-# @fixme: Упростить логику сохранения PIPESTATUS, перенеся её непосредственно 
-# в PROMPT_COMMAND: "BPPP_ERR_LINE=(${PIPESTATUS[*]}) ;trap ... "
 function bppp_trap_precommand() {
 
-  # @fixme: если trap - DEBUG можно убрать, то последующий код не влияет на PIPESTATUS.
-  # Это также позволит избавиться от промежуточной переменной _err_status
-
-  # Сохраняем коды возврата на момент входа в функцию,
-  # т.к. PIPESTATUS изменится при выполнении следующих команд
-  # @fixme: Использовать mapfile/read -a вместо прямого присваивания массива
-  # @fixme: переименовать на _status_buffer
-  local -ar _err_status=(${PIPESTATUS[*]})
-
-  # trap - DEBUG # @fixme: Проверить необходимость сброса trap
+  # trap - DEBUG # @fixme: Проверить необходимость сброса trap @closed: Сброс не обязателен
 
   # Пропускаем обработку служебных команд промпта
-  case "${BASH_COMMAND}" in
-  "bppp_postcommand")
+  if [[ "${BASH_COMMAND}" =~ ^bppp_ ]] || [[ "${BASH_COMMAND}" =~ ^trap ]]; then
     return
-    ;;
-  "trap 'bppp_trap_precommand' DEBUG")
-    # Сохраняем коды возврата пользовательских команд для последующего вывода
-    # @fixme: Использовать mapfile/read -a вместо прямого присваивания массива
-    BPPP_ERR_LINE=(${_err_status[*]}) #запомнить коды завершений
-    return
-    ;;
-  esac
+  fi
 
   # Обновление заголовка окна терминала текущей командой
   printf '\e]0;%s\a' "${debian_chroot:+($debian_chroot)}${SSH_CONNECTION:+SSH:}${USER}@${HOSTNAME} 〉 ${BASH_COMMAND:0:25}"
@@ -172,11 +153,11 @@ function bppp_postcommand() {
 
     # Проверка на потерю кодов возврата при нескольких конвейерах через ;
     # Пример: cmd1|cmd2 ; cmd3|cmd4  -- PIPESTATUS сохранит только коды для cmd3|cmd4
-    { ((BPPP_CCOUNTER > ${#BPPP_ERR_LINE[@]})) && local -r _mark='= '; } || local -r _mark=''
+    { ((BPPP_CCOUNTER > ${#bppp_ERR_LINE[@]})) && local -r _mark='= '; } || local -r _mark=''
 
     # shellcheck disable=SC2086,SC2048
-    bppp_print_nfo_line "${SECONDS}" ${_mark} ${BPPP_ERR_LINE[*]} # вывести строку статуса
-    BPPP_ERR_LINE=('')
+    bppp_print_nfo_line "${SECONDS}" ${_mark} ${bppp_ERR_LINE[*]} # вывести строку статуса
+    bppp_ERR_LINE=('')
 
     BPPP_CCOUNTER=0 # сбросить счетчик команд
   else
@@ -398,7 +379,8 @@ if [[ -n "$GNOME_TERMINAL_SCREEN" && "$TERM" = "xterm-256color" ]]; then
             grep -F 'ppp_theme.Colors.color' | sort | cut -f2 | cut -d' ' -f2)
         
         # Включаем расширенный промпт
-        PROMPT_COMMAND="trap 'bppp_trap_precommand' DEBUG; bppp_postcommand"
+        # bppp_ERR_LINE=(${PIPESTATUS[*]}) -- Сохраняем коды возврата на момент входа в функцию для последующего вывода
+        PROMPT_COMMAND='bppp_ERR_LINE=(${PIPESTATUS[*]}); trap bppp_trap_precommand DEBUG; bppp_postcommand'
         PS0='$(bppp_print_precommand)'
         PS1='${debian_chroot:+($debian_chroot)}$(bppp_print_prompt)'
     else
