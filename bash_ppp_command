@@ -49,10 +49,8 @@ function bppp_print_nfo_line() {
   # @fixme: Может заменить на tput sgr0? @decision: Не изменять, так как текущий вариант стабильнее.
   printf '\e(B\e[00m'
 
-  # @fixme: _padding -> _fixed_width: переменная хранит суммарную длину 
-  # фиксированных элементов строки, а не отступ
-  # Суммарная длина всех фиксированных элементов форматирования
-  local -i _padding=1 # ... начиная с "начальный отступ от левого края"
+  # Суммарная длина всех фиксированных элементов в строке
+  local -i _fixed_width=1 # ... начиная с "начальный отступ от левого края"
   
   local _err_line='' # Строит отформатированную подстроку с кодами возврата
 
@@ -70,7 +68,7 @@ function bppp_print_nfo_line() {
         "$(( (_timestamp / 60) % 60 ))" \
         "$(( _timestamp % 60 ))"
         
-    ((_padding = _padding + ${#_timestamp}))
+    (( _fixed_width = _fixed_width + ${#_timestamp} ))
   else
     _timestamp=''
   fi
@@ -98,7 +96,7 @@ function bppp_print_nfo_line() {
       else
         _err_line+="\e[38;2;${BPPP_COLORS[4]}m\e[49m $n " #< не нулевой код (fg св-красный, bg по умолчанию)
       fi
-      ((_padding += 2))
+      (( _fixed_width += 2 ))
     fi
   done
 
@@ -106,7 +104,7 @@ function bppp_print_nfo_line() {
   # Вывод в формате: [ЧЧ:ММ:СС]<заполнитель-до-правого-края><коды-возврата>
   # Вся строка отображается с форматированием Overline ( \e[53 )
   printf '%b %s' "\e[53;38;2;${BPPP_COLORS[1]}m\e[49m" "${_timestamp}" # Время выполнения
-  printf '%*s' $(( COLUMNS - 1 - _err_line_len - _padding )) ' '             # Заполнение пространства вправо
+  printf '%*s' $(( COLUMNS - 1 - _err_line_len - _fixed_width )) ' '             # Заполнение пространства вправо
   printf '%b%b' "${_err_line}" "\e[0m"                                   # Коды возврата и сброс форматирования
   printf '\n\n'
 }
