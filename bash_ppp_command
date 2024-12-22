@@ -130,7 +130,7 @@ function bppp_trap_precommand() {
   # @fixme: переименовать на _status_buffer
   local -ar _err_status=(${PIPESTATUS[*]})
 
-  trap - DEBUG # @fixme: Проверить необходимость сброса trap
+  # trap - DEBUG # @fixme: Проверить необходимость сброса trap
 
   # Пропускаем обработку служебных команд промпта
   case "${BASH_COMMAND}" in
