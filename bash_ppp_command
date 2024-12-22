@@ -314,8 +314,11 @@ function bppp_print_prompt() {
     # Чтобы визуально показать, что это относительный путь внутри репозитория
     # используется префикс …/
     local -r _bppp_cur_subdir="…/$(bppp_truncate_path "$(git rev-parse --show-prefix 2>/dev/null)" 25)"
+    # Чтобы визуально показать, что это относительный путь внутри репозитория
+    # используется префикс …/
+    local -r sub_path="…/$(bppp_truncate_path "$(git rev-parse --show-prefix 2>/dev/null)" 25)"
     # @fixme: Вынести создание терминальной ссылки в отдельную функцию terminal_link
-    printf ' \1%b%b\2\1%b\2 ' "${sub_path_style}" "\e]8;;file://${HOSTNAME}${PWD}\e\\\\\2${_bppp_cur_subdir}\1\e]8;;\e\\" "\e[0m"
+    printf ' \1%b%b\2\1%b\2 ' "${sub_path_style}" "\e]8;;file://${HOSTNAME}${PWD}\e\\\\\2${sub_path}\1\e]8;;\e\\" "\e[0m"
   fi
 
   # Вывод символа-разделителя и установка стиля для командной строки:
