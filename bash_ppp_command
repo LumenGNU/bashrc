@@ -268,11 +268,9 @@ function bppp_print_prompt() {
     user_style="\e[49;38;2;${BPPP_COLORS[8]}m" && readonly user_style
   fi
   # Вывод "user@host" с добавлением "SSH:" при подключении через SSH
-  # @fixme: Перенести индикатор SSH на сторону хоста: user@SSH:host
-  # Это будет логичнее и не разбивает стандартный формат user@host
-  printf '\1%b\2%s\1%b\2@' "${user_style}" "${SSH_CONNECTION:+SSH:}${USER}" "\e[0;38;2;${BPPP_COLORS[8]}m"
+  printf '\1%b\2%s\1%b\2@' "${user_style}" "${USER}" "\e[0;38;2;${BPPP_COLORS[8]}m"
   # хост
-  printf '%s\1%b\2 ' "${HOSTNAME}" "\e[0m"
+  printf '%s\1%b\2 ' "${SSH_CONNECTION:+SSH:}${HOSTNAME}" "\e[0m"
 
   # Отображение git-информации только если:
   # - Текущий каталог в git-репозитории
@@ -280,21 +278,20 @@ function bppp_print_prompt() {
   if [[ ${is_git} == 1 ]] && [[ -w "${PWD}" ]]; then # git и есть разрешение на запись
 
     # Определение текущей ветки репозитория
-    # @fixme: Общая проблема: SC2155 – Declare and assign separately
-    # @fixme: Заменить ***** на ??????? как более интуитивный индикатор
-    # отсутствия текущей ветки (detached HEAD и т.п.)
-    local _bppp_cur_brh="$(git branch --show-current 2>/dev/null)"
-    _bppp_cur_brh="${_bppp_cur_brh:-"*****"}" # Заполнитель для состояний без активной ветки (detached HEAD и т.п.)
+    # ??????? как индикатор отсутствия текущей ветки (detached HEAD и т.п.)
+    local branch_name=''
+    branch_name="$(git branch --show-current 2>/dev/null)"
+    branch_name="${branch_name:-"???????"}" && readonly branch_name # Заполнитель для состояний без активной ветки (detached HEAD и т.п.)
 
     # Установка стиля для имени ветки:
     # - Подчеркивание для веток отличных от main/master
-    # @fixme: Вынести main/master в конфигурируемый список основных веток
-    if [ "${_bppp_cur_brh}" != "master" ] && [ "${_bppp_cur_brh}" != "main" ]; then
+    # @fixme: Вынести main/master в конфигурируемый список основных веток. @reject
+    if [ "${branch_name}" != "master" ] && [ "${branch_name}" != "main" ]; then
       printf '\1%b\2' "\e[49;4:1;58;2;${BPPP_COLORS[9]}m" #< не main/master
     fi
 
     # Установка цвета текста в зависимости от состояния ветки
-    # @fixme: Рассмотреть использование полного стиля вместо только цвета
+    # @todo: Рассмотреть использование полного стиля вместо только цвета
     if [ "$(git status --porcelain 2>/dev/null | wc -l)" = "0" ]; then
       printf '\1%b\2' "\e[38;2;${BPPP_COLORS[8]}m" # Нет изменений
     else
@@ -302,7 +299,7 @@ function bppp_print_prompt() {
     fi
 
     # Вывод имени ветки и сброс форматирования
-    printf '%s\1%b\2' "${_bppp_cur_brh}" "\e[0m"
+    printf '%s\1%b\2' "${branch_name}" "\e[0m"
     
     # Отображение количества stash-записей, если они есть
     # @fixme: Переименовать _stage_count в _stash_count
