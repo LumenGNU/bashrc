@@ -50,33 +50,33 @@ function bppp_print_nfo_line() {
   printf '\e(B\e[00m'
 
   # Суммарная длина всех фиксированных элементов в строке
-  local -i _fixed_width=1 # ... начиная с "начальный отступ от левого края"
+  local -i fixed_width=1 # ... начиная с "начальный отступ от левого края"
   
-  local _err_line='' # Строит отформатированную подстроку с кодами возврата
+  local err_line='' # Строит отформатированную подстроку с кодами возврата
 
   # Первый аргумент - время выполнения команды
-  local _timestamp="$1" # ... сохраняется
+  local timestamp="$1" # ... сохраняется
   shift                 # ... и отбрасывается
                         # Теперь "$@" содержит только коды возврата
   
   # @fixme: Вынести магическое число 5 в именованную константу
-  if ((_timestamp > 5)); then
+  if ((timestamp > 5)); then
     # Форматируем временной интервал (timestamp) в [ЧЧ:ММ:СС]
     # если команда выполнялась дольше N секунд
-    printf -v _timestamp "[%02d:%02d:%02d]" \
-        "$(( _timestamp / 60 / 60 ))" \
-        "$(( (_timestamp / 60) % 60 ))" \
-        "$(( _timestamp % 60 ))"
+    printf -v timestamp "[%02d:%02d:%02d]" \
+        "$(( timestamp / 60 / 60 ))" \
+        "$(( (timestamp / 60) % 60 ))" \
+        "$(( timestamp % 60 ))"
         
-    (( _fixed_width = _fixed_width + ${#_timestamp} ))
+    (( fixed_width = fixed_width + ${#timestamp} ))
   else
-    _timestamp=''
+    timestamp=''
   fi
 
   # Расчет длины строки с кодами возврата (без пробелов)
-  local _err_line_len="$*"           # Все аргументы в одну строку
-  _err_line_len=${_err_line_len// /} # Удаляем все пробелы
-  _err_line_len=${#_err_line_len}    # Получаем длину
+  local line_len="$*"           # Все аргументы в одну строку
+  line_len=${line_len// /} # Удаляем все пробелы
+  line_len=${#line_len} && readonly line_len  # Получаем длину
 
   # Составление одной раскрашенной строки с кодами возврата (каждый код окружен пробелом)
   for n in "$@"; do          # перебор всех параметров (коды завершения)
@@ -90,22 +90,22 @@ function bppp_print_nfo_line() {
 
       # и составление одной раскрашенной строки
       if [[ "${n}" = "=" ]]; then
-        _err_line+="\e[38;2;${BPPP_COLORS[1]}m\e[49m $n " #< маркер "="
-      elif ((n == 0)); then
-        _err_line+="\e[38;2;${BPPP_COLORS[3]}m\e[49m $n " #< нулевой код (fg св-зеленый, bg по умолчанию)
+        err_line+="\e[38;2;${BPPP_COLORS[1]}m\e[49m $n " #< маркер "="
+      elif (( n == 0 )); then
+        err_line+="\e[38;2;${BPPP_COLORS[3]}m\e[49m $n " #< нулевой код (fg св-зеленый, bg по умолчанию)
       else
-        _err_line+="\e[38;2;${BPPP_COLORS[4]}m\e[49m $n " #< не нулевой код (fg св-красный, bg по умолчанию)
+        err_line+="\e[38;2;${BPPP_COLORS[4]}m\e[49m $n " #< не нулевой код (fg св-красный, bg по умолчанию)
       fi
-      (( _fixed_width += 2 ))
+      (( fixed_width += 2 ))
     # fi
   done
 
   printf '\n'
   # Вывод в формате: [ЧЧ:ММ:СС]<заполнитель-до-правого-края><коды-возврата>
   # Вся строка отображается с форматированием Overline ( \e[53 )
-  printf '%b %s' "\e[53;38;2;${BPPP_COLORS[1]}m\e[49m" "${_timestamp}" # Время выполнения
-  printf '%*s' $(( COLUMNS - 1 - _err_line_len - _fixed_width )) ' '             # Заполнение пространства вправо
-  printf '%b%b' "${_err_line}" "\e[0m"                                   # Коды возврата и сброс форматирования
+  printf '%b %s' "\e[53;38;2;${BPPP_COLORS[1]}m\e[49m" "${timestamp}" # Время выполнения
+  printf '%*s' $(( COLUMNS - 1 - line_len - fixed_width )) ' '             # Заполнение пространства вправо
+  printf '%b%b' "${err_line}" "\e[0m"                                   # Коды возврата и сброс форматирования
   printf '\n\n'
 }
 
@@ -353,6 +353,7 @@ if [[ -n "$GNOME_TERMINAL_SCREEN" && "$TERM" = "xterm-256color" ]]; then
         # Включаем расширенный промпт
         # bppp_ERR_LINE=(${PIPESTATUS[*]}) -- Сохраняем коды возврата на момент входа в функцию для последующего вывода
         PROMPT_COMMAND='bppp_ERR_LINE=(${PIPESTATUS[*]}); trap bppp_trap_precommand DEBUG; bppp_postcommand'
+        # shellcheck disable=SC2016
         PS0='$(bppp_print_precommand)'
         PS1='${debian_chroot:+($debian_chroot)}$(bppp_print_prompt)'
     else
