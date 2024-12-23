@@ -1,0 +1,5 @@
+#!/bin/bash
+
+env "BASH_FUNC_tmp_%%=() {
+$(cat "${1}")
+}" bash -c 'declare -f tmp_' | tail -n+2 | sed  '1d;$d'

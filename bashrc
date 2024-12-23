@@ -17,7 +17,7 @@ esac
 HISTCONTROL=ignoreboth:erasedups
 # HISTCONTROL=:ignorespace:ignoredups
 
-HISTIGNORE='rm *:encfs *:'
+HISTIGNORE='rm *:encfs *:fap.sh *:'
 
 # append to the history file, don't overwrite it
 shopt -s histappend
@@ -37,22 +37,9 @@ shopt -s checkwinsize
 # match all files and zero or more directories and subdirectories.
 shopt -s globstar
 
-
-
 # make less more friendly for non-text input files, see lesspipe(1)
 [ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
 
-
-
-# Alias definitions.
-# You may want to put all your additions into a separate file like
-# ~/.bash_aliases, instead of adding them here directly.
-# See /usr/share/doc/bash-doc/examples in the bash-doc package.
-
-if [ -f ~/.bash_aliases ]; then
-  # shellcheck source=bash_aliases
-  source ~/.bash_aliases
-fi
 
 # АВТОЗАВЕРШЕНИЯ
 # enable programmable completion features (you don't need to enable
@@ -64,23 +51,26 @@ if ! shopt -oq posix; then
   elif [ -f /etc/bash_completion ]; then
     source /etc/bash_completion
   fi
-  # если есть папка с автозавершенями, то используем.
-  # будут подключены все файлы с расширением _autocomplete
-  if [ -d ~/.bash_completions ]; then
-     # compgen -G проверяет есть ли файлы по шаблону *_autocomplete
-   # возвращает 0 если файлы найдены, 1 если файлов нет
-   # > /dev/null отбрасывает вывод, оставляя только код возврата
-    if compgen -G ~/.bash_completions/*_autocomplete > /dev/null; then
-        for f in ~/.bash_completions/*_autocomplete; do
-            # shellcheck disable=SC1090
-            source "$f"
-        done
-    fi
-  fi
 fi
 
 
-# shellcheck source=bash_ppp_command
-source ~/.bash_ppp_command
+if [[ -d "${HOME}/.bashrc.d" ]]; then
 
+  # если есть папка с автозавершенями, то используем.
+  # будут подключены все файлы с расширением _autocomplete
+  if [[ -d "${HOME}/.bashrc.d/completions" ]]; then
+    while IFS= read -r -d '' file
+    do
+      # shellcheck source=/dev/null
+      source "${file}"
+    done < <(find "${HOME}/.bashrc.d/completions" -type f -print0)
+  fi
+
+  # shellcheck source=bashrc.d/aliases
+  source "${HOME}/.bashrc.d/aliases"
+
+  # shellcheck source=bashrc.d/surge_prompt_command
+  source "${HOME}/.bashrc.d/surge_prompt_command"
+  
+fi
 
