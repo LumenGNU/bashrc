@@ -124,9 +124,9 @@ function surge_print_nfo_line() {
 function surge_trap_precommand() {
 
   # trap - DEBUG # @fixme: Проверить необходимость сброса trap @closed: Сброс не обязателен
-
+# echo "= ${BASH_COMMAND}"
   # Пропускаем обработку служебных команд промпта
-  if [[ "${BASH_COMMAND}" =~ ^surge_ ]] || [[ "${BASH_COMMAND}" =~ ^trap ]]; then
+  if [[ "${BASH_COMMAND}" =~ ^surge_ ]] || [[ "${BASH_COMMAND}" =~ ^trap ]] || [[ "${BASH_COMMAND}" =~ ^history\s ]]; then
     return
   fi
 
@@ -135,6 +135,7 @@ function surge_trap_precommand() {
 
   # Управление счетчиком команд и таймером
   (( surge_CCOUNTER == 0 )) && SECONDS=0 # обнуление таймера перед первой командой
+  
   (( ++surge_CCOUNTER )) # подсчет команд
 }
 
@@ -164,6 +165,7 @@ function surge_postcommand() {
     surge_ERR_LINE=('')
 
     surge_CCOUNTER=0 # сбросить счетчик команд
+
   else
     # Пустая строка (Enter без команды или C-c)
     # @fixme: Попытки уменьшить кол-во пустых строк через прокрутку 
@@ -184,6 +186,7 @@ function surge_print_precommand() {
   printf '%b%*s%b\n' "\e[53;38;2;${surge_SETTINGS[color.background.light]}m\e[49m" "$(( ${COLUMNS:-$(tput cols)} - 1 ))" ' ' "\e[0m" 
   printf '\e[J' #< Очистка до конца экрана для предотвращения артефактов подсветки
 
+  # @note: Влиять на историю тут не стоит
   # @note: поменять заголовок окна на текущую команду тут не получится
 }
 
@@ -361,13 +364,14 @@ if [[ -n "$GNOME_TERMINAL_SCREEN" && "$TERM" = "xterm-256color" ]]; then
         done < "${HOME}/.bashrc.d/surge.config"
         
         # Включаем расширенный промпт
+        # history -a; history -n -- предотвращают потерю истории и синхронизируют ее между текущими сессиями. HISTIGNORE= должен содержать history*:
         # surge_ERR_LINE=(${PIPESTATUS[*]}) -- Сохраняем коды возврата на момент входа в функцию для последующего вывода
-        PROMPT_COMMAND='surge_ERR_LINE=(${PIPESTATUS[*]}); trap surge_trap_precommand DEBUG; surge_postcommand'
+        PROMPT_COMMAND='surge_ERR_LINE=(${PIPESTATUS[*]}); history -a; history -n; trap surge_trap_precommand DEBUG; surge_postcommand;'
         # shellcheck disable=SC2016
         PS0='$(surge_print_precommand)'
         PS1='${debian_chroot:+($debian_chroot)}$(surge_print_prompt)'
     else
-        echo "ppp: Включен базовый режим промпта. " >&2
+        echo "SURGE: Включен базовый режим промпта. " >&2
         command -v git >/dev/null || echo "Не найдена команда git. " >&2
         [[ -r "${HOME}/.bashrc.d/surge.config" ]] || echo "Файл конфигурации не доступен." >&2
         echo -e "Устраните сломанные зависимости для работы расширенного промпта.\n" >&2
