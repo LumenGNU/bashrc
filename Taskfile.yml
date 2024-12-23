@@ -1,0 +1,35 @@
+version: '3'
+
+tasks:
+
+  mkdirs:
+    internal: true
+    cmds:
+      - mkdir -p ~/.bashrc.d
+      - mkdir -p ~/.bashrc.d/completions
+      - mkdir -p ~/.config/gtk-3.0/
+
+  install:
+    deps: [ mkdirs ]
+    cmds:
+      - dev/pprint profile > ~/.profile
+      - dev/pprint bashrc > ~/.bashrc
+      - dev/pprint bash_logout > ~/.bash_logout
+      - dev/pprint bashrc.d/aliases > ~/.bashrc.d/aliases
+      - dev/pprint bashrc.d/surge_prompt_command > ~/.bashrc.d/surge_prompt_command
+      - cat bashrc.d/surge.config > ~/.bashrc.d/surge.config
+      - cat gtk3/gtk.css > ~/.config/gtk-3.0/gtk.css
+
+  uninstall:
+    cmds:
+      - #
+      - task: clean
+
+  clean:
+    cmds:
+      - test -r /etc/skel/.profile && cat /etc/skel/.profile > ~/.profile || :> ~/.profile
+      - test -r /etc/skel/.bashrc && cat /etc/skel/.bashrc  > ~/.bashrc || :> ~/.bashrc
+      - test -r /etc/skel/.bash_logout && cat /etc/skel/.bash_logout > ~/.bash_logout || :> ~/.bash_logout
+      - test -r /etc/inputrc && cat /etc/inputrc > ~/.inputrc || :> ~/.inputrc
+      - test -d ~/.bashrc.d && rm -rf ~/.bashrc.d
+      - test -r ~/.config/gtk-3.0/gtk.css && rm -rf ~/.config/gtk-3.0/gtk.css
