@@ -3,4 +3,4 @@
 # Некоторые утелиты умеют сами генерировать скрипты автозавершения для
 # самих себя
 
-eval "$(task --completion bash)"
+command -v task >/dev/null && eval "$(task --completion bash)"
