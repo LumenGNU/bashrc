@@ -66,8 +66,8 @@ function surge_print_nfo_line() {
   shift                 # ... и отбрасывается
                         # Теперь "$@" содержит только коды возврата
   
-  # @todo: Вынести магическое число 5 в именованную константу
-  if ((timestamp > 5)); then
+  # # Показывать время выполнения если больше time.show_threshold
+  if (( timestamp > ${surge_SETTINGS[time.show_threshold]:-5} )); then
     # Форматируем временной интервал (timestamp) в [ЧЧ:ММ:СС]
     # если команда выполнялась дольше N секунд
     printf -v timestamp "[%02d:%02d:%02d]" \
