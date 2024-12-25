@@ -10,9 +10,10 @@ declare -A surge_SETTINGS
 
 declare -a surge_ERR_LINE=() # Массив для хранения кодов возврата команд в цепочке
 
-# @fixme: иследовать возможность использовать переменную bash LINENO
+# @fixme: иследовать возможность использовать переменную bash LINENO. @reject - LINENO не считает тут
 declare -i surge_CCOUNTER=0  # Счетчик команд для корректной обработки цепочек команд
 
+# region function surge_truncate_path
 # Используется встроенная переменная bash SECONDS как секундомер:
 # - Сбрасывается в 0 перед выполнением команды
 # - Автоматически увеличивается на 1 каждую секунду
@@ -32,7 +33,9 @@ function surge_truncate_path() {
         echo "$path"
     fi
 }
+# endregion
 
+# region function surge_print_nfo_line
 # Форматирует и выводит информационную строку после выполнения команды/цепочки команд.
 # Ета строка содержит:
 # - Время выполнения (если больше 5 секунд) в формате [ЧЧ:ММ:СС]
@@ -50,7 +53,7 @@ function surge_truncate_path() {
 function surge_print_nfo_line() {
 
   # Сброс/исправление терминала после выполнения команды.
-  # @fixme: Может заменить на tput sgr0? @decision: Не изменять, так как текущий вариант стабильнее.
+  # @fixme: Может заменить на tput sgr0? @decision - Не изменять, так как текущий вариант стабильнее.
   printf '\e(B\e[00m'
 
   # Суммарная длина всех фиксированных элементов в строке
@@ -112,7 +115,9 @@ function surge_print_nfo_line() {
   printf '%b%b' "${err_line}" "\e[0m"                                   # Коды возврата и сброс форматирования
   printf '\n\n'
 }
+# endregion
 
+# region function surge_trap_precommand
 # Обработчик trap DEBUG для отслеживания выполнения пользовательских команд.
 # Вызывается перед каждой командой в цепочке команд командной строки.
 # @todo: Добавить дополнительную визуальную разделительную линию 
@@ -124,9 +129,9 @@ function surge_print_nfo_line() {
 function surge_trap_precommand() {
 
   # trap - DEBUG # @fixme: Проверить необходимость сброса trap @closed: Сброс не обязателен
-# echo "= ${BASH_COMMAND}"
+
   # Пропускаем обработку служебных команд промпта
-  if [[ "${BASH_COMMAND}" =~ ^surge_ ]] || [[ "${BASH_COMMAND}" =~ ^trap ]] || [[ "${BASH_COMMAND}" =~ ^history\s ]]; then
+  if [[ "${BASH_COMMAND}" =~ ^surge_ ]] || [[ "${BASH_COMMAND}" =~ ^trap ]] || [[ "${BASH_COMMAND}" =~ ^history\ -(a|n)$ ]]; then
     return
   fi
 
@@ -137,8 +142,11 @@ function surge_trap_precommand() {
   (( surge_CCOUNTER == 0 )) && SECONDS=0 # обнуление таймера перед первой командой
   
   (( ++surge_CCOUNTER )) # подсчет команд
+  
 }
+# endregion
 
+# region function surge_postcommand
 # Обработчик завершения пользовательских команд.
 # Вызывается через PROMPT_COMMAND после выполнения всех команд.
 #
@@ -163,7 +171,7 @@ function surge_postcommand() {
     # shellcheck disable=SC2086,SC2048
     surge_print_nfo_line "${SECONDS}" ${_mark} ${surge_ERR_LINE[*]} # вывести строку статуса
     surge_ERR_LINE=('')
-
+    
     surge_CCOUNTER=0 # сбросить счетчик команд
 
   else
@@ -176,7 +184,9 @@ function surge_postcommand() {
   fi
 
 }
+# endregion
 
+# region function surge_print_precommand
 # Визуально создает эффект разделительной линии между строкой ввода команды и её выводом.
 # Функция вызывается через PS0 перед выводом результатов команды.
 # Использует Overlined стиль для экономии вертикального пространства.
@@ -189,8 +199,9 @@ function surge_print_precommand() {
   # @note: Влиять на историю тут не стоит
   # @note: поменять заголовок окна на текущую команду тут не получится
 }
+# endregion
 
-
+# region function surge_print_prompt
 # Формирует двустрочный prompt командной строки:
 # - Текущий каталог/репозиторий с возможностью перехода по клику
 # - Информация о git (ветка, статус изменений)
@@ -334,6 +345,7 @@ function surge_print_prompt() {
      "\e[0;1;38;2;${surge_SETTINGS[color.text.normal]}m"
 
 }
+# endregion
 
 
 # ТОЧКА ВХОДА ##
@@ -384,3 +396,4 @@ else
     # Простой промпт для остальных терминалов
     PS1='\n${debian_chroot:+($debian_chroot)}\u@\h:\w\ 〉'
 fi
+

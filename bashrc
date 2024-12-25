@@ -14,9 +14,9 @@ esac
 #
 # История команд
 #
-HISTCONTROL='ignorespace:ignoreboth:erasedups'
+HISTCONTROL='ignoreboth:erasedups'
 HISTIGNORE='&:l:ll:ls:pwd:[bf]g:exit:history*:rm *:encfs *:fap.sh *:'
-HISTSIZE=1000
+HISTSIZE=130
 HISTFILESIZE=2000
 
 # Добавлять команды в историю, не перезаписывать
